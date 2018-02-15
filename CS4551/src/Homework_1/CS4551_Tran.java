@@ -1,6 +1,13 @@
 package Homework_1;
 
+import java.awt.BorderLayout;
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Scanner;
+
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 
 import setupImageProject.Image;
 
@@ -17,7 +24,8 @@ public class CS4551_Tran
 				"5. Quit");
 		
 		System.out.print("Please enter the task number [1 - 5]: ");
-		String option = input.next();
+		//String option = input.next();
+		String option = "2";
 		System.out.println();
 		
 		boolean isRunning = true;
@@ -26,15 +34,40 @@ public class CS4551_Tran
 			case "1":
 			{
 				System.out.println("Conversion to Gray - scale Image (24bits -> 8bits):");
-				GrayScaleConversion(image);
+				
+				Image grayScaleImage = GrayScaleConversion(image);
+				grayScaleImage.write2PPM("src\\Homework_1\\image\\GrayScale.ppm");
+				grayScaleImage.display();
+				
 				System.out.println();
+				
 				isRunning = true;
 			}break;
 			
 			case "2":
 			{
 				System.out.println("Conversion to N-level Image:");
+				String nLevelS = null;
 				
+				boolean isAInput = false;
+				do 
+				{
+					System.out.print("Please enter the N-level [2 (1 bit), 4 (2 bit), 8 (3 bit), 16 (4 bit)]: ");
+					nLevelS = input.next();
+					
+					if(nLevelS.equals("2") || nLevelS.equals("4") || 
+							nLevelS.equals("8") || nLevelS.equals("16"))
+					{
+						isAInput = true;
+					}
+				}
+				while(!isAInput);
+				
+				int nLevel = Integer.parseInt(nLevelS);
+//				int nLevel = Integer.parseInt("4");
+				Image NLevelImage = NLevelConversion(image, nLevel);
+				NLevelImage.write2PPM("src\\Homework_1\\image\\Output1.ppm");
+				NLevelImage.display();
 				System.out.println();
 				isRunning = true;
 			}break;
@@ -72,8 +105,75 @@ public class CS4551_Tran
 		return isRunning;
 	}
 	
-	private static void GrayScaleConversion(Image image)
+	private static Image NLevelConversion(Image image, int nLevel)
 	{
+		//nLevel = 8;
+		
+		final int BIT_VALUE = 256;
+		final int GRAY_VALUE = BIT_VALUE - 1;
+		double grayInterval = GRAY_VALUE / (nLevel - 1.0);
+		double grayCount = 0;
+		ArrayList<Integer> grayValues = new ArrayList<>();
+		grayValues.add((int)grayCount);
+		while(grayCount < GRAY_VALUE) 
+		{
+			grayCount = grayCount + grayInterval;
+			grayValues.add((int)Math.floor(grayCount));
+		}
+		
+		Image grayScaleImage = GrayScaleConversion(image);
+		
+		Image NLevelImage = new Image(grayScaleImage.getW(), grayScaleImage.getH());
+		for(int y = 0; y < image.getH(); y++) 
+		{
+			for(int x = 0; x < image.getW(); x++) 
+			{
+				int[] rgb = new int[3];
+				grayScaleImage.getPixel(x, y, rgb);
+
+				int newGrayValue = rgb[0];
+				for(int i = 1; i < grayValues.size(); i++) 
+				{
+					if(rgb[0] < grayValues.get(i)) 
+					{
+						int highGrayValue = grayValues.get(i);
+						int lowGrayValue = grayValues.get(i - 1);
+						
+						int lowBound = Math.abs(lowGrayValue - rgb[0]);
+						int highBound = Math.abs(highGrayValue - rgb[0]);
+						
+						// the Bounds that has the lower number means that the gray pixal value 
+						// is closer to one of the n_level values
+						if(lowBound < highBound) 
+						{
+							newGrayValue = lowGrayValue;
+						}
+						else 
+						{
+							newGrayValue = highGrayValue;
+						}
+						
+						break;
+					}
+				}
+				
+				rgb[0] = newGrayValue;
+				rgb[1] = newGrayValue;
+				rgb[2] = newGrayValue;
+				
+				NLevelImage.setPixel(x, y, rgb);
+//				image.setPixel(x, y, rgb);
+			}
+		}
+		
+		return NLevelImage;
+	}
+
+	// what makes this 8 bit gray scale image?  
+	private static Image GrayScaleConversion(Image image)
+	{
+		Image newImage = new Image(image.getW(), image.getH());
+	    
 		for(int y = 0; y < image.getH(); y++) 
 		{
 			for(int x = 0; x < image.getW(); x++) 
@@ -82,18 +182,16 @@ public class CS4551_Tran
 				image.getPixel(x, y, rgb);
 				
 				int Gray = (int) Math.round(0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]);
+
 				rgb[0] = Gray;
 				rgb[1] = Gray;
 				rgb[2] = Gray;
 				
-				image.setPixel(x, y, rgb);
+				newImage.setPixel(x, y, rgb);
 			}
 		}
 		
-		image.write2PPM("src\\Homework_1\\image\\out.ppm");
-
-	    Image img = new Image("src\\Homework_1\\image\\out.ppm");
-	    img.display();
+		return newImage;
 	}
 
 	public static void main(String[] args)

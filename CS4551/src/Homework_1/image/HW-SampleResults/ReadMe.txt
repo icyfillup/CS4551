@@ -1,0 +1,1 @@
+The threshold value used for ducky-threshold.ppm is the average of all gray values.

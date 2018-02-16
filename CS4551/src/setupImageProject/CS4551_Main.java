@@ -27,7 +27,7 @@ public class CS4551_Main
     {
     	for(int x = 0; x < img_.getW(); x++) 
         {
-    		img_.displayPixelValue(x, y);
+//    		img_.displayPixelValue(x, y);
     		int[] rgb = new int[3];
     		img_.getPixel(x, y, rgb);
     		

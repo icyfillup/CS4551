@@ -1,22 +1,16 @@
 package Homework_1;
 
-import java.awt.BorderLayout;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
 
 import setupImageProject.Image;
 
 public class CS4551_Tran
 {
 
-	public static boolean MainMain(Scanner input, Image image) 
+	public static boolean MainMain(Scanner input, Image image, String filename) 
 	{
 		System.out.println("Main Menu-----------------------------------\r\n" + 
 				"1. Conversion to Gray - scale Image (24bits -> 8bits)\r\n" + 
@@ -26,8 +20,8 @@ public class CS4551_Tran
 				"5. Quit");
 		
 		System.out.print("Please enter the task number [1 - 5]: ");
-//		String option = input.next();
-		String option = "3";
+		String option = input.next();
+//		String option = "3";
 		System.out.println();
 		
 		boolean isRunning = true;
@@ -36,11 +30,9 @@ public class CS4551_Tran
 			case "1":
 			{
 				System.out.println("Conversion to Gray - scale Image (24bits -> 8bits):");
-				
-				Image grayScaleImage = GrayScaleConversion(image);
-				grayScaleImage.write2PPM("src\\Homework_1\\image\\GrayScale.ppm");
-				grayScaleImage.display();
-				
+				Image GrayScaleImage = GrayScaleConversion(image);
+				GrayScaleImage.write2PPM("grayscale.ppm");
+				GrayScaleImage.display();
 				System.out.println();
 				
 				isRunning = true;
@@ -70,10 +62,10 @@ public class CS4551_Tran
 				Image NLevelImage = NLevelConversion(image, nLevel);
 				Image NLevelErrorDiffusionImage = NLevelErrorDiffusionConversion(image, nLevel);
 
-				NLevelImage.write2PPM("src\\Homework_1\\image\\Output1.ppm");
+				NLevelImage.write2PPM("Output1.ppm");
 				NLevelImage.display();
 				
-				NLevelErrorDiffusionImage.write2PPM("src\\Homework_1\\image\\Output2.ppm");
+				NLevelErrorDiffusionImage.write2PPM("Output2.ppm");
 				NLevelErrorDiffusionImage.display();
 				
 				System.out.println();
@@ -83,7 +75,11 @@ public class CS4551_Tran
 			case "3":
 			{
 				System.out.println("Conversion to 8-bit Indexed Color Image using Uniform Color Quantization(24bits -> 8bits):");
-				UniformColorQuantization(image);
+				
+				Image UCQ = UniformColorQuantization(image, filename);
+				UCQ.write2PPM(filename + "-QT8.ppm");
+				UCQ.display();
+				
 				System.out.println();
 				isRunning = true;
 			}break;
@@ -113,15 +109,15 @@ public class CS4551_Tran
 		return isRunning;
 	}
 	
-	private static void UniformColorQuantization(Image image)
+	private static Image UniformColorQuantization(Image image, String filename)
 	{
-		final int BIT_VALUE = 256;
+		final int MAX_BIT_VALUE = 256;
 		
 		System.out.println("index\tred\tgreen\tblue");
 		System.out.println("----------------------------");
+
 		Map<Integer, int[]> lookUpTable = new HashMap<>();
-		
-		for(int index = 0; index < BIT_VALUE; index++) 
+		for(int index = 0; index < MAX_BIT_VALUE; index++) 
 		{
 			int redIndex = (0xff & (index & 224)) >> 5;
 			int greenIndex = (0xff & (index & 28)) >> 2;
@@ -135,8 +131,54 @@ public class CS4551_Tran
 			
 			System.out.println(index + "\t" + red + "\t" + green + "\t" + blue);
 		}
-		System.out.print("");
-			
+		
+		Image indexImage = new Image(image.getW(), image.getH());
+		for(int y = 0; y < image.getH(); y++) 
+		{
+			for(int x = 0; x < image.getW(); x++) 
+			{
+				int[] rgb = new int[3];
+				image.getPixel(x, y, rgb);
+				
+				int redIndex = SegmentIndex(MAX_BIT_VALUE, 8, rgb[0]);
+				int greenIndex = SegmentIndex(MAX_BIT_VALUE, 8, rgb[1]);
+				int blueIndex = SegmentIndex(MAX_BIT_VALUE, 4, rgb[2]);
+				
+				int colorIndex = 0xFF & ((redIndex << 5) | (greenIndex << 2) | blueIndex);
+				
+				indexImage.setPixel(x, y, new int[]{colorIndex, colorIndex, colorIndex});
+			}
+		}
+		
+		Image indexColorImage = new Image(image.getW(), image.getH());
+		for(int y = 0; y < image.getH(); y++) 
+		{
+			for(int x = 0; x < image.getW(); x++) 
+			{
+				int[] rgb = new int[3];
+				indexImage.getPixel(x, y, rgb);
+				indexColorImage.setPixel(x, y, lookUpTable.get(rgb[0]));
+			}
+		}
+
+		indexImage.write2PPM(filename+"-index.ppm");
+		return indexColorImage;
+	}
+
+	private static int SegmentIndex(int bitValue, int segment, int colorValue)
+	{
+		int indexResult = 0;
+		int redSegmentInterval = bitValue / segment;
+		while(indexResult < segment) 
+		{
+			int increment = ((indexResult + 1) * redSegmentInterval);
+			if (colorValue < increment) 
+			{
+				break;
+			}
+			indexResult++;
+		}
+		return indexResult;
 	}
 
 	private static Image NLevelErrorDiffusionConversion(Image image, int nLevel)
@@ -240,7 +282,6 @@ public class CS4551_Tran
 				}
 			}
 		}
-		
 		return NLevelImage;
 	}
 
@@ -319,7 +360,6 @@ public class CS4551_Tran
 //				image.setPixel(x, y, rgb);
 			}
 		}
-		
 		return NLevelImage;
 	}
   
@@ -354,7 +394,6 @@ public class CS4551_Tran
 				newImage.setPixel(x, y, rgb);
 			}
 		}
-		
 		return newImage;
 	}
 
@@ -362,11 +401,12 @@ public class CS4551_Tran
 	{
 		Scanner input = new Scanner(System.in);
 		System.out.println(System.getProperty("user.dir"));
-		Image image = new Image("src\\Homework_1\\image\\Ducky.ppm");
-		//Image image = new Image("src\\Homework_1\\image\\Buildings.ppm");
-//		Image image = new Image("src\\Homework_1\\image\\Citynight.ppm");
+		Image image = new Image("src\\Homework_1\\Ducky.ppm");
+//		Image image = new Image("src\\Homework_1\\Buildings.ppm");
+//		Image image = new Image("src\\Homework_1\\Citynight.ppm");
 		
-		while(MainMain(input, image)) {}
+		String filename = args[0].replace(".ppm", "");
+		while(MainMain(input, image, filename)) {}
 
 		input.close();
 	}

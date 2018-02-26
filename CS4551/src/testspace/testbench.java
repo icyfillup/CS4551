@@ -28,13 +28,31 @@ class AdaptiveHuffmanCoding
 {
 	Node root;
 	
-	Map<Character, Node> leafNodes = new HashMap<>();
-	
 	public AdaptiveHuffmanCoding() {} 
 	
-	public void add(Node node, char element) 
+	public void add(char element) 
+	{
+		if(root == null) 
+		{
+			root = new Node(0);
+			
+			root.left = new Node('\0', 0);
+			root.right = new Node(element, 1);
+			update(root);
+		}
+	}
+	
+	private void addRecursive(Node node, char element) 
 	{
 		
+	}
+	
+	private void update(Node node) 
+	{
+		if(node.left == null && node.right == null) 
+		{
+			
+		}
 	}
 }
 
@@ -50,7 +68,7 @@ public class testbench
 		{
 			char element = stream.charAt(i);
 			
-			ahc.add(ahc.root, element);
+			ahc.add(element);
 		}
 	}
 

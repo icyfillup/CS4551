@@ -4,16 +4,38 @@ import java.util.Scanner;
 
 public class CS4551_Tran
 {
-	public static void  AliasingRadialCirclePattern(int M, int N, int K) 
+	public static boolean isCircleOutOfBound(Image radialCircle, int X, int Y) 
+	{
+		boolean result = true;
+		if(X < radialCircle.getW() && X >= 0 && Y < radialCircle.getH() && Y >= 0)
+		{
+			result = false;
+		}
+		
+		return result;
+	}
+	
+	public static Image RadialCirclePattern(int M, int N) 
 	{
 		Image radialCircle = new Image(512, 512);
+		int[] white = new int[] {255, 255, 255};
+		for(int y = 0; y < radialCircle.getH(); y++) 
+		{
+			for(int x = 0; x < radialCircle.getW(); x++) 
+			{
+				radialCircle.setPixel(x, y, white);
+			}
+		}
 
 		int centerX = radialCircle.getW() / 2;
 		int centerY = radialCircle.getH() / 2;
+		int[] black = new int[] {0, 0, 0};
 		
-		
-		for(int increment = 1; increment <= 5; increment++) 
+		int increment = 1;
+		boolean expand = true;
+		while(expand) 
 		{
+			expand = false;
 			int radiusSize = N * increment;
 			
 			for(int thicc = 0; thicc < M; thicc++) 
@@ -21,49 +43,88 @@ public class CS4551_Tran
 				int thiccnessX = centerX + thicc;
 				int thiccnessY = centerY + thicc;
 				
-				for(int deg = 0; deg <= 90; deg++) 
+				for(float deg = 0; deg <= 90; deg += 0.01) 
 				{
-					int[] rgb = new int[] {255, 255, 255};
 					float radian = (float) ((Math.PI / 180.0) * (float)deg);
 					
-					float Quad1X = (float) (thiccnessX + (radiusSize * Math.cos(radian)));
-					float Quad1Y = (float) (thiccnessY + (radiusSize * Math.sin(radian)));
-					radialCircle.setPixel((int)Math.floor(Quad1X), (int)Math.floor(Quad1Y), rgb);
+					int Quad1X = (int) Math.round(thiccnessX + (radiusSize * Math.cos(radian)));
+					int Quad1Y = (int) Math.round(thiccnessY + (radiusSize * Math.sin(radian)));
+					boolean isQuad1OutOfBound = isCircleOutOfBound(radialCircle, Quad1X, Quad1Y);
+					if(!isQuad1OutOfBound)
+						radialCircle.setPixel(Quad1X, Quad1Y, black);
 					
-					int Quad2X = (int)Math.floor(centerX - Math.abs(centerX - Quad1X));
-					int Quad2Y = (int)Math.floor(Quad1Y);
-					radialCircle.setPixel(Quad2X, Quad2Y, rgb);
+					int Quad2X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
+					int Quad2Y = (int)Math.round(Quad1Y);
+					boolean isQuad2OutOfBound = isCircleOutOfBound(radialCircle, Quad2X, Quad2Y);
+					if(!isQuad2OutOfBound)
+						radialCircle.setPixel(Quad2X, Quad2Y, black);
 					
-					int Quad3X = (int)Math.floor(centerX - Math.abs(centerX - Quad1X));
-					int Quad3Y = (int)Math.floor(centerY - Math.abs(centerY - Quad1Y));
-					radialCircle.setPixel(Quad3X, Quad3Y, rgb);
+					int Quad3X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
+					int Quad3Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
+					boolean isQuad3OutOfBound = isCircleOutOfBound(radialCircle, Quad3X, Quad3Y);
+					if(!isQuad3OutOfBound)
+						radialCircle.setPixel(Quad3X, Quad3Y, black);
 					
-					int Quad4X = (int)Math.floor(Quad1X);
-					int Quad4Y = (int)Math.floor(centerY - Math.abs(centerY - Quad1Y));
-					radialCircle.setPixel(Quad4X, Quad4Y, rgb);
+					int Quad4X = (int)Math.round(Quad1X);
+					int Quad4Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
+					boolean isQuad4OutOfBound = isCircleOutOfBound(radialCircle, Quad4X, Quad4Y);
+					if(!isQuad4OutOfBound)
+						radialCircle.setPixel(Quad4X, Quad4Y, black);
+					
+					expand = expand || !isQuad1OutOfBound || !isQuad2OutOfBound || !isQuad3OutOfBound || !isQuad4OutOfBound;
 				}	
+			}
+			
+			increment++;
+		}
+		
+		return radialCircle;
+	}
+	
+	public static void ResizeCirclePattern(Image originalCircle, int K)
+	{
+		Image resizeCircle = new Image(originalCircle.getW() / K, originalCircle.getH() / K);
+		int[] white = new int[] {255, 255, 255};
+		for(int y = 0; y < resizeCircle.getH(); y++) 
+		{
+			for(int x = 0; x < resizeCircle.getW(); x++) 
+			{
+				resizeCircle.setPixel(x, y, white);
 			}
 		}
 		
-		
-		radialCircle.display();
-		
+		for(int y = 0; y < resizeCircle.getH(); y++) 
+		{
+			int originalCircleOffsetY = y * K;
+			for(int x = 0; x < resizeCircle.getW(); x++) 
+			{
+				int originalCircleOffsetX = x * K;
+				
+				int[] rgb = new int[3];
+				originalCircle.getPixel(originalCircleOffsetX, originalCircleOffsetY, rgb);
+				resizeCircle.setPixel(x, y, rgb);
+			}
+		}
+		resizeCircle.display();
 		System.out.println();
 	}
 	
-	public static void AliasingCircle(Scanner input)
+	public static void AliasingCirclePattern(Scanner input)
 	{
 		boolean UserInputDebugMode = true;
 		if(UserInputDebugMode) 
 		{
-			int[] testingInput = new int[] {3, 20, 2};
+//			int[] testingInput = new int[] {1, 20, 2};
 //			int[] testingInput = new int[] {1, 20, 4};
 //			int[] testingInput = new int[] {3, 20, 2};
 //			int[] testingInput = new int[] {3, 20, 4};
 //			int[] testingInput = new int[] {5, 40, 2};
-//			int[] testingInput = new int[] {5, 40, 4};
+			int[] testingInput = new int[] {5, 40, 4};
 			
-			AliasingRadialCirclePattern(testingInput[0], testingInput[1], testingInput[2]); 
+			Image radialCircle = RadialCirclePattern(testingInput[0], testingInput[1]); 
+			ResizeCirclePattern(radialCircle, testingInput[2]);
+			radialCircle.display();
+			
 		}
 		else 
 		{
@@ -117,10 +178,12 @@ public class CS4551_Tran
 			int distance = Integer.parseInt(distanceS);
 			int resize = Integer.parseInt(resizeS);
 			
-			AliasingRadialCirclePattern(thiccness, distance, resize); 	
+			Image radialCircle = RadialCirclePattern(thiccness, distance);
+			ResizeCirclePattern(radialCircle, resize);
+			radialCircle.display();
 		}
 		
-		
+		System.out.println();
 	}
 
 	public static boolean MainMenu(Scanner input)
@@ -145,7 +208,7 @@ public class CS4551_Tran
 				isRunning = true;
 				System.out.println("Aliasing");
 
-				AliasingCircle(input);
+				AliasingCirclePattern(input);
 
 			}
 			break;

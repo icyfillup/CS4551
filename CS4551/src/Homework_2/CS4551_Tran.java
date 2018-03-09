@@ -4,10 +4,10 @@ import java.util.Scanner;
 
 public class CS4551_Tran
 {
-	public static boolean isCircleOutOfBound(Image radialCircle, int X, int Y) 
+	public static boolean isCircleOutOfBound(Image circle, int X, int Y) 
 	{
 		boolean result = true;
-		if(X < radialCircle.getW() && X >= 0 && Y < radialCircle.getH() && Y >= 0)
+		if(X < circle.getW() && X >= 0 && Y < circle.getH() && Y >= 0)
 		{
 			result = false;
 		}
@@ -83,43 +83,111 @@ public class CS4551_Tran
 	
 	public static void ResizeCirclePattern(Image originalCircle, int K)
 	{
-		Image resizeCircle = new Image(originalCircle.getW() / K, originalCircle.getH() / K);
+		Image resizeNoFilterCircle = new Image(originalCircle.getW() / K, originalCircle.getH() / K);
+		Image resizeFilter1Circle = new Image(originalCircle.getW() / K, originalCircle.getH() / K);
+		Image resizeFilter2Circle = new Image(originalCircle.getW() / K, originalCircle.getH() / K);
+		
 		int[] white = new int[] {255, 255, 255};
-		for(int y = 0; y < resizeCircle.getH(); y++) 
+		for(int y = 0; y < resizeNoFilterCircle.getH(); y++) 
 		{
-			for(int x = 0; x < resizeCircle.getW(); x++) 
+			for(int x = 0; x < resizeNoFilterCircle.getW(); x++) 
 			{
-				resizeCircle.setPixel(x, y, white);
+				resizeNoFilterCircle.setPixel(x, y, white);
+				resizeFilter1Circle.setPixel(x, y, white);
+				resizeFilter2Circle.setPixel(x, y, white);
 			}
 		}
 		
-		for(int y = 0; y < resizeCircle.getH(); y++) 
+		for(int y = 0; y < resizeNoFilterCircle.getH(); y++) 
 		{
 			int originalCircleOffsetY = y * K;
-			for(int x = 0; x < resizeCircle.getW(); x++) 
+			for(int x = 0; x < resizeNoFilterCircle.getW(); x++) 
 			{
 				int originalCircleOffsetX = x * K;
 				
 				int[] rgb = new int[3];
 				originalCircle.getPixel(originalCircleOffsetX, originalCircleOffsetY, rgb);
-				resizeCircle.setPixel(x, y, rgb);
+				resizeNoFilterCircle.setPixel(x, y, rgb);
+				setFliter1(originalCircle, resizeFilter1Circle, 
+							originalCircleOffsetX, originalCircleOffsetY, 
+							x, y, rgb);
 			}
 		}
-		resizeCircle.display();
+		
+		originalCircle.display();
+		resizeNoFilterCircle.display();
+		resizeFilter1Circle.display();
+		resizeFilter2Circle.display();
 		System.out.println();
 	}
 	
+	private static void setFliter1(Image originalCircle, Image resizeFilter1Circle, 
+									int xOriginal, int yOriginal, 
+									int xResize, int yResize,
+									int[] rgb)
+	{
+		float[] weightRGB = new float[] {0, 0, 0};
+		
+		int topY = yOriginal - 1;
+		
+		int topLeftX = xOriginal - 1;
+		int topCenterX = xOriginal;
+		int topRightX = xOriginal + 1;
+		fillInPixelWeightFilter1(originalCircle, weightRGB, topLeftX, topY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, topCenterX, topY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, topRightX, topY);
+
+		int centerY = yOriginal;
+		
+		int leftX = xOriginal - 1;
+		int centerX = xOriginal;
+		int rightX = xOriginal + 1;
+		fillInPixelWeightFilter1(originalCircle, weightRGB, leftX, centerY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, centerX, centerY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, rightX, centerY);
+		
+		int bottomY = yOriginal + 1;
+		
+		int bottomLeftX = xOriginal - 1;
+		int bottomCenterX = xOriginal;
+		int bottomRightX = xOriginal + 1;
+		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomLeftX, bottomY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomCenterX, bottomY);
+		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomCenterX, bottomY);
+	
+		int[] newWeightRGB = new int[] {Math.round(weightRGB[0]), 
+										Math.round(weightRGB[1]), 
+										Math.round(weightRGB[2])};
+		
+		resizeFilter1Circle.setPixel(xResize, yResize, newWeightRGB);
+	}
+
+	private static void fillInPixelWeightFilter1(Image circle, float[] weightRGB, int x, int y)
+	{
+		if(!isCircleOutOfBound(circle, x, y)) 
+		{
+			int[] oldRGB = new int[3];
+			circle.getPixel(x, y, oldRGB);
+			
+			if(oldRGB[0] != 0)
+				System.out.println();
+			weightRGB[0] += oldRGB[0] * (1.0/9.0);
+			weightRGB[1] += oldRGB[1] * (1.0/9.0);
+			weightRGB[2] += oldRGB[2] * (1.0/9.0);
+		}
+	}
+
 	public static void AliasingCirclePattern(Scanner input)
 	{
 		boolean UserInputDebugMode = true;
 		if(UserInputDebugMode) 
 		{
-//			int[] testingInput = new int[] {1, 20, 2};
+			int[] testingInput = new int[] {1, 20, 2};
 //			int[] testingInput = new int[] {1, 20, 4};
 //			int[] testingInput = new int[] {3, 20, 2};
 //			int[] testingInput = new int[] {3, 20, 4};
 //			int[] testingInput = new int[] {5, 40, 2};
-			int[] testingInput = new int[] {5, 40, 4};
+//			int[] testingInput = new int[] {5, 40, 4};
 			
 			Image radialCircle = RadialCirclePattern(testingInput[0], testingInput[1]); 
 			ResizeCirclePattern(radialCircle, testingInput[2]);

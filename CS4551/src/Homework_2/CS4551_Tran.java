@@ -1,9 +1,15 @@
 package Homework_2;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class CS4551_Tran
 {
+	public static final boolean UserInputDebugMode = true;
+	
 	public static boolean isCircleOutOfBound(Image circle, int X, int Y) 
 	{
 		boolean result = true;
@@ -35,7 +41,6 @@ public class CS4551_Tran
 		boolean expand = true;
 		while(expand) 
 		{
-			expand = false;
 			int radiusSize = N * increment;
 			
 			for(int thicc = 0; thicc < M; thicc++) 
@@ -43,35 +48,50 @@ public class CS4551_Tran
 				int thiccnessX = centerX + thicc;
 				int thiccnessY = centerY + thicc;
 				
-				for(float deg = 0; deg <= 90; deg += 0.01) 
+				for(float deg = 0; deg <= 90; deg += 0.001) 
 				{
 					float radian = (float) ((Math.PI / 180.0) * (float)deg);
 					
 					int Quad1X = (int) Math.round(thiccnessX + (radiusSize * Math.cos(radian)));
 					int Quad1Y = (int) Math.round(thiccnessY + (radiusSize * Math.sin(radian)));
 					boolean isQuad1OutOfBound = isCircleOutOfBound(radialCircle, Quad1X, Quad1Y);
-					if(!isQuad1OutOfBound)
-						radialCircle.setPixel(Quad1X, Quad1Y, black);
 					
-					int Quad2X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
-					int Quad2Y = (int)Math.round(Quad1Y);
-					boolean isQuad2OutOfBound = isCircleOutOfBound(radialCircle, Quad2X, Quad2Y);
-					if(!isQuad2OutOfBound)
-						radialCircle.setPixel(Quad2X, Quad2Y, black);
+					if(!isQuad1OutOfBound) 
+					{
+						int Quad2X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
+						int Quad2Y = (int)Math.round(Quad1Y);
+						boolean isQuad2OutOfBound = isCircleOutOfBound(radialCircle, Quad2X, Quad2Y);
+						
+						if(!isQuad2OutOfBound) 
+						{
+							int Quad3X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
+							int Quad3Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
+							boolean isQuad3OutOfBound = isCircleOutOfBound(radialCircle, Quad3X, Quad3Y);	
+							
+							if(!isQuad3OutOfBound) 
+							{
+								int Quad4X = (int)Math.round(Quad1X);
+								int Quad4Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
+								boolean isQuad4OutOfBound = isCircleOutOfBound(radialCircle, Quad4X, Quad4Y);
+								
+								expand = expand && !isQuad1OutOfBound && !isQuad2OutOfBound && !isQuad3OutOfBound && !isQuad4OutOfBound;
 					
-					int Quad3X = (int)Math.round(centerX - Math.abs(centerX - Quad1X));
-					int Quad3Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
-					boolean isQuad3OutOfBound = isCircleOutOfBound(radialCircle, Quad3X, Quad3Y);
-					if(!isQuad3OutOfBound)
-						radialCircle.setPixel(Quad3X, Quad3Y, black);
-					
-					int Quad4X = (int)Math.round(Quad1X);
-					int Quad4Y = (int)Math.round(centerY - Math.abs(centerY - Quad1Y));
-					boolean isQuad4OutOfBound = isCircleOutOfBound(radialCircle, Quad4X, Quad4Y);
-					if(!isQuad4OutOfBound)
-						radialCircle.setPixel(Quad4X, Quad4Y, black);
-					
-					expand = expand || !isQuad1OutOfBound || !isQuad2OutOfBound || !isQuad3OutOfBound || !isQuad4OutOfBound;
+								if(expand) 
+								{
+									radialCircle.setPixel(Quad1X, Quad1Y, black);
+									radialCircle.setPixel(Quad2X, Quad2Y, black);
+									radialCircle.setPixel(Quad3X, Quad3Y, black);
+									radialCircle.setPixel(Quad4X, Quad4Y, black);	
+								}
+							}
+							else 
+								expand = false;
+						}
+						else
+							expand = false;
+					}
+					else
+						expand = false;
 				}	
 			}
 			
@@ -111,6 +131,9 @@ public class CS4551_Tran
 				setFliter1(originalCircle, resizeFilter1Circle, 
 							originalCircleOffsetX, originalCircleOffsetY, 
 							x, y, rgb);
+				setFliter2(originalCircle, resizeFilter2Circle, 
+						originalCircleOffsetX, originalCircleOffsetY, 
+						x, y, rgb);
 			}
 		}
 		
@@ -121,6 +144,47 @@ public class CS4551_Tran
 		System.out.println();
 	}
 	
+	private static void setFliter2(Image originalCircle, Image resizeFilter1Circle, 
+			int xOriginal, int yOriginal, 
+			int xResize, int yResize,
+			int[] rgb)
+	{
+		float[] weightRGB = new float[] {0, 0, 0};
+		
+		int topY = yOriginal - 1;
+		
+		int topLeftX = xOriginal - 1;
+		int topCenterX = xOriginal;
+		int topRightX = xOriginal + 1;
+		fillInPixelWeightFilter(originalCircle, weightRGB, topLeftX, topY, 1.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, topCenterX, topY, 2.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, topRightX, topY, 1.0/16.0);
+
+		int centerY = yOriginal;
+		
+		int leftX = xOriginal - 1;
+		int centerX = xOriginal;
+		int rightX = xOriginal + 1;
+		fillInPixelWeightFilter(originalCircle, weightRGB, leftX, centerY, 2.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, centerX, centerY, 4.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, rightX, centerY, 2.0/16.0);
+		
+		int bottomY = yOriginal + 1;
+		
+		int bottomLeftX = xOriginal - 1;
+		int bottomCenterX = xOriginal;
+		int bottomRightX = xOriginal + 1;
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomLeftX, bottomY, 1.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomCenterX, bottomY, 2.0/16.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomCenterX, bottomY, 1.0/16.0);
+	
+		int[] newWeightRGB = new int[] {Math.round(weightRGB[0]), 
+										Math.round(weightRGB[1]), 
+										Math.round(weightRGB[2])};
+		
+		resizeFilter1Circle.setPixel(xResize, yResize, newWeightRGB);
+	}
+
 	private static void setFliter1(Image originalCircle, Image resizeFilter1Circle, 
 									int xOriginal, int yOriginal, 
 									int xResize, int yResize,
@@ -133,27 +197,27 @@ public class CS4551_Tran
 		int topLeftX = xOriginal - 1;
 		int topCenterX = xOriginal;
 		int topRightX = xOriginal + 1;
-		fillInPixelWeightFilter1(originalCircle, weightRGB, topLeftX, topY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, topCenterX, topY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, topRightX, topY);
+		fillInPixelWeightFilter(originalCircle, weightRGB, topLeftX, topY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, topCenterX, topY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, topRightX, topY, 1.0/9.0);
 
 		int centerY = yOriginal;
 		
 		int leftX = xOriginal - 1;
 		int centerX = xOriginal;
 		int rightX = xOriginal + 1;
-		fillInPixelWeightFilter1(originalCircle, weightRGB, leftX, centerY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, centerX, centerY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, rightX, centerY);
+		fillInPixelWeightFilter(originalCircle, weightRGB, leftX, centerY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, centerX, centerY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, rightX, centerY, 1.0/9.0);
 		
 		int bottomY = yOriginal + 1;
 		
 		int bottomLeftX = xOriginal - 1;
 		int bottomCenterX = xOriginal;
 		int bottomRightX = xOriginal + 1;
-		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomLeftX, bottomY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomCenterX, bottomY);
-		fillInPixelWeightFilter1(originalCircle, weightRGB, bottomCenterX, bottomY);
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomLeftX, bottomY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomCenterX, bottomY, 1.0/9.0);
+		fillInPixelWeightFilter(originalCircle, weightRGB, bottomCenterX, bottomY, 1.0/9.0);
 	
 		int[] newWeightRGB = new int[] {Math.round(weightRGB[0]), 
 										Math.round(weightRGB[1]), 
@@ -162,7 +226,7 @@ public class CS4551_Tran
 		resizeFilter1Circle.setPixel(xResize, yResize, newWeightRGB);
 	}
 
-	private static void fillInPixelWeightFilter1(Image circle, float[] weightRGB, int x, int y)
+	private static void fillInPixelWeightFilter(Image circle, float[] weightRGB, int x, int y, double weight)
 	{
 		if(!isCircleOutOfBound(circle, x, y)) 
 		{
@@ -171,28 +235,26 @@ public class CS4551_Tran
 			
 			if(oldRGB[0] != 0)
 				System.out.println();
-			weightRGB[0] += oldRGB[0] * (1.0/9.0);
-			weightRGB[1] += oldRGB[1] * (1.0/9.0);
-			weightRGB[2] += oldRGB[2] * (1.0/9.0);
+			weightRGB[0] += oldRGB[0] * weight;
+			weightRGB[1] += oldRGB[1] * weight;
+			weightRGB[2] += oldRGB[2] * weight;
 		}
 	}
 
 	public static void AliasingCirclePattern(Scanner input)
 	{
-		boolean UserInputDebugMode = true;
 		if(UserInputDebugMode) 
 		{
-			int[] testingInput = new int[] {1, 20, 2};
+//			int[] testingInput = new int[] {1, 20, 2};
 //			int[] testingInput = new int[] {1, 20, 4};
 //			int[] testingInput = new int[] {3, 20, 2};
 //			int[] testingInput = new int[] {3, 20, 4};
 //			int[] testingInput = new int[] {5, 40, 2};
-//			int[] testingInput = new int[] {5, 40, 4};
+			int[] testingInput = new int[] {5, 40, 4};
 			
 			Image radialCircle = RadialCirclePattern(testingInput[0], testingInput[1]); 
 			ResizeCirclePattern(radialCircle, testingInput[2]);
 			radialCircle.display();
-			
 		}
 		else 
 		{
@@ -253,6 +315,62 @@ public class CS4551_Tran
 		
 		System.out.println();
 	}
+	
+	public static void EncodeDenoteFileMessage(Scanner input) 
+	{
+		String fileName = null;
+		if(UserInputDebugMode) 
+		{
+//			fileName = "LZW_test1.txt";
+//			fileName = "LZW_test2.txt";
+//			fileName = "LZW_test3.txt";
+			fileName = "LZW_test4.txt";
+		}
+		else 
+		{
+			System.out.print("Enter filename: ");
+			fileName = input.next();
+		}
+		
+        String line = null;
+        try {
+        	String tempLine = null;
+
+        	FileReader fileReader = new FileReader(fileName);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+            while((tempLine = bufferedReader.readLine()) != null)
+                line = tempLine;
+
+            bufferedReader.close();
+            fileReader.close();
+            
+            encodeMessage(line);
+            decodeMessage(line);
+        }
+        catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + fileName + "'");                
+            // ex.printStackTrace();
+        }
+        catch(IOException ex) {
+            System.out.println("Error reading file '" + fileName + "'");                  
+            // ex.printStackTrace();
+        }
+        
+        System.out.println();
+	}
+
+	private static void encodeMessage(String line)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	private static void decodeMessage(String line)
+	{
+		// TODO Auto-generated method stub
+		
+	}
 
 	public static boolean MainMenu(Scanner input)
 	{
@@ -263,7 +381,7 @@ public class CS4551_Tran
 		System.out.print("Please enter the task number [1-3]: ");
 
 		// String option = input.next();
-		String option = "1";
+		String option = "2";
 
 		System.out.println();
 		System.out.println();
@@ -286,6 +404,7 @@ public class CS4551_Tran
 				isRunning = true;
 				System.out.println("Dictionary Coding");
 
+				EncodeDenoteFileMessage(input);
 			}
 			break;
 

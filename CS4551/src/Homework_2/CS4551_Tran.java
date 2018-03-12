@@ -4,7 +4,14 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class CS4551_Tran
 {
@@ -323,8 +330,8 @@ public class CS4551_Tran
 		{
 //			fileName = "LZW_test1.txt";
 //			fileName = "LZW_test2.txt";
-//			fileName = "LZW_test3.txt";
-			fileName = "LZW_test4.txt";
+			fileName = "LZW_test3.txt";
+//			fileName = "LZW_test4.txt";
 		}
 		else 
 		{
@@ -345,8 +352,11 @@ public class CS4551_Tran
             bufferedReader.close();
             fileReader.close();
             
-            encodeMessage(line);
-            decodeMessage(line);
+            Set<String> initSymbols = new HashSet<>();
+            List<Integer> encodedMessage = encoder(line, initSymbols);
+            String decodedMessage = decoder(encodedMessage, initSymbols);
+            
+            if(UserInputDebugMode) checkDebugMessage(line, decodedMessage);
         }
         catch(FileNotFoundException ex) {
             System.out.println("Unable to open file '" + fileName + "'");                
@@ -360,16 +370,101 @@ public class CS4551_Tran
         System.out.println();
 	}
 
-	private static void encodeMessage(String line)
+	private static void checkDebugMessage(String line, String decodedMessage)
 	{
-		// TODO Auto-generated method stub
-		
+		for(int index = 0; index < line.length(); index++) 
+		{
+			if(line.charAt(index) != decodedMessage.charAt(index)) 
+			{
+				System.out.println("not the same");
+				break;
+			}
+				
+		}
+		System.out.println();
 	}
 
-	private static void decodeMessage(String line)
+	private static List<Integer> encoder(String line, Set<String> initSymbols)
 	{
-		// TODO Auto-generated method stub
+		//line = "ababababab";
 		
+		for(char symbol: line.toCharArray())
+			initSymbols.add("" + symbol);
+		
+		List<String> dictionary = new ArrayList<>(initSymbols);
+		
+		String tempPastSymbols = "";
+		List<Integer> encodedMessage = new ArrayList<>();
+		for(char symbol: line.toCharArray()) 
+		{
+			String stream = tempPastSymbols + symbol;
+			
+			if(dictionary.contains(stream)) 
+			{
+				tempPastSymbols = stream;
+			}
+			else 
+			{
+				dictionary.add(stream);
+				encodedMessage.add(dictionary.indexOf(tempPastSymbols));
+				tempPastSymbols = "" + symbol;
+			}
+		}
+		encodedMessage.add(dictionary.indexOf(tempPastSymbols));
+		
+		return encodedMessage;
+	}
+
+	private static String decoder(List<Integer> encodedMessage, Set<String> initSymbols)
+	{
+		List<String> dictionary = new ArrayList<>(initSymbols);
+		
+		String decodedMessage = "";
+		int currentIndex;
+		for(int encodedMessageIndex = 0; encodedMessageIndex < encodedMessage.size(); encodedMessageIndex++) 
+		{
+			currentIndex = encodedMessage.get(encodedMessageIndex);
+			String currentEntry = dictionary.get(currentIndex);
+			decodedMessage = decodedMessage + currentEntry;
+			
+			if(encodedMessageIndex + 1 < encodedMessage.size()) 
+			{
+				if(encodedMessage.get(encodedMessageIndex + 1) < dictionary.size()) 
+				{
+					String futureEntry = dictionary.get(encodedMessage.get(encodedMessageIndex + 1));
+					
+					dictionary.add(currentEntry + futureEntry.charAt(0));
+				}
+				else 
+				{
+					dictionary.add(currentEntry + currentEntry.charAt(0));
+				}	
+			}
+			
+		}
+		
+		/*
+		int currentIndex = encodedMessage.get(0);
+		String currentWord = dictionary.get(currentIndex);
+		
+		String decodedMessage = currentWord;
+		
+		int previousIndex = currentIndex;
+		
+		for(int encodedMessageIndex = 1; encodedMessageIndex < encodedMessage.size(); encodedMessageIndex++) 
+		{
+			currentIndex = encodedMessage.get(encodedMessageIndex);
+			currentWord = dictionary.get(currentIndex);
+			
+			decodedMessage = decodedMessage + currentWord;
+			
+			String stream = dictionary.get(previousIndex) + dictionary.get(currentIndex).charAt(0);
+			dictionary.add(stream);
+			
+			previousIndex = currentIndex;
+		}
+		*/
+		return decodedMessage;
 	}
 
 	public static boolean MainMenu(Scanner input)

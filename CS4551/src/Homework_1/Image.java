@@ -446,7 +446,7 @@ public class Image
 		
 		String[] splitFilePath = fileName.split("\\\\");
 		String newFileName = fileName.replace(splitFilePath[splitFilePath.length - 1], "Output2.ppm");
-		NLevelErrorDiffusionImage.write2PPM(newFileName);
+		NLevelErrorDiffusionImage.write2PPM(nLevel + "n-level" + newFileName);
 		return NLevelErrorDiffusionImage;
 	}
 	

@@ -1,6 +1,6 @@
 package Class_Work;
 
-public class DCT_Hand_on_Activity
+public class CS4551_Tran
 {
 	public static void SetupDCTValues(double [][] A) 
 	{
@@ -109,48 +109,75 @@ public class DCT_Hand_on_Activity
 		}
 	}
 	
+	public static void DCT_2D(double [][] A, double [][] B) 
+	{
+		for(int y = 0; y < A.length; y++) 
+		{
+			for(int x = 0; x < A[0].length; x++) 
+			{
+				double sum = 0.0;
+				for(int i = 0; i < A.length; i++) 
+				{
+					double firstDivide = ((2.0 * i + 1.0) * y * Math.PI) / 16.0;
+					double firstCosine = Math.cos(firstDivide);
+					
+					for(int j = 0; j < A[0].length; j++) 
+					{
+						double secondDivide = ((2.0 * j + 1.0) * x * Math.PI) / 16.0;
+						double secondCosine = Math.cos(secondDivide);
+						
+						sum = sum + (firstCosine * secondCosine * A[i][j]);
+					}
+					
+				}		
+				
+				B[y][x] = CoefficientScalar(x, y) * sum;
+			}
+		}
+	}
+	
+	public static void InverseDCT_2D(double [][] B, double [][] C)
+	{
+		for(int j = 0; j < B.length; j++) 
+		{
+			for(int i = 0; i < B[0].length; i++) 
+			{
+				double sum = 0.0;
+				for(int u = 0; u < B.length; u++) 
+				{
+					double firstDivide = ((2.0 * i + 1.0) * u * Math.PI) / 16;
+					double firstCosine = Math.cos(firstDivide);
+					for(int v = 0; v < B[0].length; v++) 
+					{
+						double secondDivide = ((2.0 * j + 1.0) * v * Math.PI) / 16.0;
+						double secondCosine = Math.cos(secondDivide);
+						
+						sum += CoefficientScalar(u, v) * firstCosine * secondCosine * B[v][u];
+					}
+				}
+				C[j][i] = sum;
+			}
+		}
+	}
+	
 	public static void main(String[] args)
 	{
 		double [][] A = new double[8][8];
-		
 		SetupDCTValues(A);
-		
 		ShiftDCTValues(A, -128);
 		
-		DisplayDCTValues(A);
-		
 		double [][] B = new double[8][8];
-		int x = 0;
-		int y = 0;
-		double sum = 0.0;
-		for(int i = 0; i < A.length; i++) 
-		{
-			double firstDivide = ((2.0 * i + 1.0) * y * Math.PI) / 16.0;
-			double firstCosine = Math.cos(firstDivide);
-			
-			for(int j = 0; j < A[0].length; j++) 
-			{
-				double secondDivide = ((2.0 * j + 1.0) * x * Math.PI) / 16.0;
-				double secondCosine = Math.cos(secondDivide);
-				
-				if(i == 4 && j == 4) 
-				{
-					System.out.println("hello");
-				}
-				
-				
-				sum = sum + (firstCosine * secondCosine * A[i][j]);
-				System.out.println(sum);
-				
-			}
-			
-		}
+		DCT_2D(A, B);
 		
+		double [][] C = new double[8][8];
+		InverseDCT_2D(B, C);
 		
-		System.out.println(CoefficientScalar(x, y) * sum);
+		//ShiftDCTValues(C, 128);
 		
-		
-		
+		System.out.println("Displaying DCT A:");
+		DisplayDCTValues(A);
+		System.out.println("\nDisplaying IDCT C:");
+		DisplayDCTValues(C);
 	}
 
 

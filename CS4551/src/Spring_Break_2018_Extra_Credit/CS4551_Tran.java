@@ -130,7 +130,13 @@ public class CS4551_Tran
 //					double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
 //					double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
 //					
-//					newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});	
+//					newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
+//					
+////					newPaddedImage.setPixel((indexX * 2), (indexY * 2), new int[] {(int)R, (int)G, (int)B});
+////					newPaddedImage.setPixel((indexX * 2) + 1, (indexY * 2), new int[] {(int)R, (int)G, (int)B});
+////					newPaddedImage.setPixel((indexX * 2), (indexY * 2) + 1, new int[] {(int)R, (int)G, (int)B});
+////					newPaddedImage.setPixel((indexX * 2) + 1, (indexY * 2) + 1, new int[] {(int)R, (int)G, (int)B});
+//					
 //				}
 //			}	
 //		}
@@ -164,55 +170,46 @@ public class CS4551_Tran
 		
 //################		Inverse Color space transformation and Supersampling
 		//maybe change subsamplingCb and subsamplingCr to to Cb and Cr size 
-		Image newPaddedImage = new Image(Y[0].length, Y.length);
 		
+		double[][] newCb = new double[Y.length][Y[0].length];
+		double[][] newCr = new double[Y.length][Y[0].length];
 		for(int indexY = 0; indexY < subSampleCb.length; indexY++) 
 		{
 			for(int indexX = 0; indexX < subSampleCb[0].length; indexX++) 
 			{
 				if(Y.length > (indexY * 2) && Y[0].length > (indexX * 2) ) 
 				{
-					double newTempCb = (subSampleCb[indexY][indexX] + 0.5);
-					double newTempCr = (subSampleCr[indexY][indexX] + 0.5);
+					newCb[(indexY * 2)][(indexX * 2)] = subSampleCb[indexY][indexX];
+					newCb[(indexY * 2)][(indexX * 2) + 1] = subSampleCb[indexY][indexX];
+					newCb[(indexY * 2) + 1][(indexX * 2)] = subSampleCb[indexY][indexX];
+					newCb[(indexY * 2) + 1][(indexX * 2) + 1] = subSampleCb[indexY][indexX];
 					
-					{
-						int topLeftX = (indexX * 2), topLeftY = (indexY * 2); 
-						double newTempY = (Y[topLeftY][topLeftX] + 128);
-						double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-						double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-						double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-						newPaddedImage.setPixel(topLeftX, topLeftY, new int[] {(int)R, (int)G, (int)B});	
-							
-					}
+					newCr[(indexY * 2)][(indexX * 2)] = subSampleCr[indexY][indexX];
+					newCr[(indexY * 2)][(indexX * 2) + 1] = subSampleCr[indexY][indexX];
+					newCr[(indexY * 2) + 1][(indexX * 2)] = subSampleCr[indexY][indexX];
+					newCr[(indexY * 2) + 1][(indexX * 2) + 1] = subSampleCr[indexY][indexX];
 					
-					{
-						int topRightX = (indexX * 2) + 1, topRightY = (indexY * 2); 
-						double newTempY = (Y[topRightY][topRightX] + 128);
-						double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-						double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-						double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-						newPaddedImage.setPixel(topRightX, topRightY, new int[] {(int)R, (int)G, (int)B});		
-					}
 					
-					{
-						int bottomLeftX = (indexX * 2), bottomLeftY = (indexY * 2) + 1; 
-						double newTempY = (Y[bottomLeftY][bottomLeftX] + 128);
-						double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-						double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-						double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-						newPaddedImage.setPixel(bottomLeftX, bottomLeftY, new int[] {(int)R, (int)G, (int)B});		
-					}
-					
-					{
-						int bottomRightX = (indexX * 2) + 1, bottomRightY = (indexY * 2) + 1; 
-						double newTempY = (Y[bottomRightY][bottomRightX] + 128);
-						double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-						double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-						double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-						newPaddedImage.setPixel(bottomRightX, bottomRightY, new int[] {(int)R, (int)G, (int)B});		
-					}
 				}
+			}	
+		}
+		
+		
+		Image newPaddedImage = new Image(Y[0].length, Y.length);
+		
+		for(int indexY = 0; indexY < Y.length; indexY++) 
+		{
+			for(int indexX = 0; indexX < Y[0].length; indexX++) 
+			{
+				double newTempY = (Y[indexY][indexX] + 128);
+				double newTempCb = (newCb[indexY][indexX] + 0.5);
+				double newTempCr = (newCr[indexY][indexX] + 0.5);
 				
+				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
+				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
+				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
+				
+				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
 			}	
 		}
 

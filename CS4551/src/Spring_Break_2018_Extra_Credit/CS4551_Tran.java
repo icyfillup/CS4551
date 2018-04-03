@@ -59,31 +59,6 @@ public class CS4551_Tran
 			}
 		}
 		
-		/* check if the matrix calculation was incorrect
-		Image testPaddedImage = new Image(paddedImage.getW(), paddedImage.getH());
-		
-		for(int j = 0; j < paddedImage.getH(); j++) 
-		{
-			for(int i = 0; i < paddedImage.getW(); i++) 
-			{
-				double newTempY = (Y[j][i] + 128);
-				double newTempCb = (Cb[j][i] + 0.5);
-				double newTempCr = (Cr[j][i] + 0.5);
-				
-				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-				
-				R = Math.round(R);
-				G = Math.round(G);
-				B = Math.round(B);
-				
-				testPaddedImage.setPixel(i, j, new int[] {(int)R, (int)G, (int)B});
-			}
-		}
-		
-		testPaddedImage.display();
-		 */	
 		for(int indexY = 0; indexY < Y.length; indexY = indexY + 2) 
 		{
 			int subSampleIndexY = indexY / 2;
@@ -113,6 +88,109 @@ public class CS4551_Tran
 		}
 	}
 	
+	private static Image InverseColorSpaceTransformationSubsampling(double[][] Y, double[][] subSampleCb, double[][] subSampleCr) 
+	{
+		Image newPaddedImage = new Image(Y[0].length, Y.length);
+		for(int indexY = 0; indexY < Y.length; indexY++) 
+		{
+			int subSampleIndexY = indexY / 2;
+			for(int indexX = 0; indexX < Y[0].length; indexX++) 
+			{
+				int subSampleIndexX = indexX / 2;
+				
+				double newTempY = (Y[indexY][indexX] + 128);
+				double newTempCb = (subSampleCb[subSampleIndexY][subSampleIndexX] + 0.5);
+				double newTempCr = (subSampleCr[subSampleIndexY][subSampleIndexX] + 0.5);
+				
+				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
+				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
+				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
+				
+				if(R >= 256) R = 255;
+				if(G >= 256) G = 255;
+				if(B >= 256) B = 255;
+				
+				if(R < 0) R = 0;
+				if(G < 0) G = 0;
+				if(B < 0) B = 0;
+				
+				assert(R < 256 && R >= 0);
+				assert(G < 256 && G >= 0);
+				assert(B < 256 && B >= 0);
+				
+				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
+			}	
+		}
+		return newPaddedImage;
+	}
+
+	private static double[][] DctCalculation(double[][] sourceSample)
+	{
+		double [][] dctCoeff = new double[sourceSample.length][sourceSample[0].length];
+		
+		for(int y = 0; y < sourceSample.length; y++) 
+		{
+			for(int x = 0; x < sourceSample[0].length; x++) 
+			{
+				double sum = 0.0;
+				for(int i = 0; i < sourceSample.length; i++) 
+				{
+					double firstDivide = ((2.0 * i + 1.0) * y * Math.PI) / 16.0;
+					double firstCosine = Math.cos(firstDivide);
+					
+					for(int j = 0; j < sourceSample[0].length; j++) 
+					{
+						double secondDivide = ((2.0 * j + 1.0) * x * Math.PI) / 16.0;
+						double secondCosine = Math.cos(secondDivide);
+						
+						sum = sum + (firstCosine * secondCosine * sourceSample[i][j]);
+					}
+				}		
+				dctCoeff[y][x] = CoefficientScalar(x, y) * sum;
+			}
+		}
+		
+		return dctCoeff;
+	}
+	
+
+	private static double[][] InverseDctCalculation(double[][] dctCoeff)
+	{
+		double [][] sourceSample = new double[dctCoeff.length][dctCoeff[0].length];
+		
+		for(int j = 0; j < dctCoeff.length; j++) 
+		{
+			for(int i = 0; i < dctCoeff[0].length; i++) 
+			{
+				double sum = 0.0;
+				for(int u = 0; u < dctCoeff.length; u++) 
+				{
+					double firstDivide = ((2.0 * i + 1.0) * u * Math.PI) / 16;
+					double firstCosine = Math.cos(firstDivide);
+					for(int v = 0; v < dctCoeff[0].length; v++) 
+					{
+						double secondDivide = ((2.0 * j + 1.0) * v * Math.PI) / 16.0;
+						double secondCosine = Math.cos(secondDivide);
+						
+						sum += CoefficientScalar(u, v) * firstCosine * secondCosine * dctCoeff[v][u];
+					}
+				}
+				sourceSample[j][i] = sum;
+			}
+		}
+		return sourceSample;
+	}
+
+	
+	public static double CoefficientScalar(int x, int y) 
+	{
+		double c1 = (x == 0) ? Math.sqrt(2.0)/2.0 : 1.0;
+		double c2 = (y == 0) ? Math.sqrt(2.0)/2.0 : 1.0;
+		
+		double result = (c1 * c2) / 4.0;
+		return result;
+	}
+	
 	public static void main(String[] args)
 	{
 		System.out.println(args[0]);
@@ -135,65 +213,71 @@ public class CS4551_Tran
 		double[][] subSampleCr = new double[subSamplingHeight][subSamplingWidth];
 		
 		ColorSpaceTransformationSubsampling(paddedImage, Y, subSampleCb, subSampleCr);	
+
+//################		Discrete Cosine Transform
 		
-//################		Inverse Color space transformation and Supersampling
-		//maybe change subsamplingCb and subsamplingCr to to Cb and Cr size 
+		assert(Y.length % 8 == 0);
+		assert(Y[0].length % 8 == 0);
 		
-		double[][] newCb = new double[Y.length][Y[0].length];
-		double[][] newCr = new double[Y.length][Y[0].length];
-		for(int indexY = 0; indexY < subSampleCb.length; indexY++) 
+		double[][] inverseY = new double[Y.length][Y[0].length];
+		for(int j = 0; j < Y.length/8; j++) 
 		{
-			for(int indexX = 0; indexX < subSampleCb[0].length; indexX++) 
+			for(int i = 0; i < Y[0].length/8; i++) 
 			{
-				if(Y.length > (indexY * 2) && Y[0].length > (indexX * 2) ) 
+				double[][] sourceSample = new double[8][8];
+				for(int y = 0; y < sourceSample.length; y++) 
 				{
-					newCb[(indexY * 2)][(indexX * 2)] = subSampleCb[indexY][indexX];
-					newCb[(indexY * 2)][(indexX * 2) + 1] = subSampleCb[indexY][indexX];
-					newCb[(indexY * 2) + 1][(indexX * 2)] = subSampleCb[indexY][indexX];
-					newCb[(indexY * 2) + 1][(indexX * 2) + 1] = subSampleCb[indexY][indexX];
-					
-					newCr[(indexY * 2)][(indexX * 2)] = subSampleCr[indexY][indexX];
-					newCr[(indexY * 2)][(indexX * 2) + 1] = subSampleCr[indexY][indexX];
-					newCr[(indexY * 2) + 1][(indexX * 2)] = subSampleCr[indexY][indexX];
-					newCr[(indexY * 2) + 1][(indexX * 2) + 1] = subSampleCr[indexY][indexX];
-					
-					
+					for(int x = 0; x < sourceSample[0].length; x++) 
+					{
+						sourceSample[y][x] = Y[(j * 8) + y][(i * 8) + x];
+					}	
 				}
-			}	
-		}
-		
-		
-		Image newPaddedImage = new Image(Y[0].length, Y.length);
-		
-		for(int indexY = 0; indexY < Y.length; indexY++) 
-		{
-			for(int indexX = 0; indexX < Y[0].length; indexX++) 
-			{
-				double newTempY = (Y[indexY][indexX] + 128);
-				double newTempCb = (newCb[indexY][indexX] + 0.5);
-				double newTempCr = (newCr[indexY][indexX] + 0.5);
 				
-				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-				
-				if(R >= 256) R = 255;
-				if(G >= 256) G = 255;
-				if(B >= 256) B = 255;
-				
-				if(R < 0) R = 0;
-				if(G < 0) G = 0;
-				if(B < 0) B = 0;
-				
-				assert(R < 256 && R >= 0);
-				assert(G < 256 && G >= 0);
-				assert(B < 256 && B >= 0);
-				
-				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
-			}	
+				double[][] dctCoeff = DctCalculation(sourceSample);
+				for(int y = 0; y < dctCoeff.length; y++) 
+				{
+					for(int x = 0; x < dctCoeff[0].length; x++) 
+					{
+						inverseY[(j * 8) + y][(i * 8) + x] = dctCoeff[y][x];
+					}	
+				}
+			}
 		}
 
+		System.out.println();
+		
+//################		Inverse DCT
+
+		double[][] newY = new double[inverseY.length][inverseY[0].length];
+		for(int j = 0; j < inverseY.length/8; j++) 
+		{
+			for(int i = 0; i < inverseY[0].length/8; i++) 
+			{
+				double[][] dctCoeff = new double[8][8];
+				for(int y = 0; y < dctCoeff.length; y++) 
+				{
+					for(int x = 0; x < dctCoeff[0].length; x++) 
+					{
+						dctCoeff[y][x] = inverseY[(j * 8) + y][(i * 8) + x];
+					}	
+				}
+				
+				double[][] sourceSample = InverseDctCalculation(dctCoeff);
+				for(int y = 0; y < sourceSample.length; y++) 
+				{
+					for(int x = 0; x < sourceSample[0].length; x++) 
+					{
+						newY[(j * 8) + y][(i * 8) + x] = sourceSample[y][x];
+					}	
+				}
+			}
+		}
+		
+//################		Inverse Color space transformation and Supersampling
+
+		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, subSampleCb, subSampleCr);
 		newPaddedImage.display();
+		
 //################		Remove Padding and Display the image
 		
 		int originalHeight = 0;
@@ -246,5 +330,6 @@ public class CS4551_Tran
 		
 		System.exit(0);
 	}
+
 
 }

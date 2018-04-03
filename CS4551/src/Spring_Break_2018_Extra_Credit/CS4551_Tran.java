@@ -91,58 +91,26 @@ public class CS4551_Tran
 			{
 				int subSampleIndexX = indexX / 2;
 				
-//				subSampleCb[subSampleIndexY][subSampleIndexX] = 
-//						(Cb[indexY][indexX] * 1.0/4.0) + 
-//						(Cb[indexY][indexX + 1] * 1.0/4.0) + 
-//						(Cb[indexY + 1][indexX] * 1.0/4.0) + 
-//						(Cb[indexY + 1][indexX + 1] * 1.0/4.0);
-//				
-//				subSampleCr[subSampleIndexY][subSampleIndexX] = 
-//						(Cr[indexY][indexX] * 1.0/4.0) + 
-//						(Cr[indexY][indexX + 1] * 1.0/4.0) + 
-//						(Cr[indexY + 1][indexX] * 1.0/4.0) + 
-//						(Cr[indexY + 1][indexX + 1] * 1.0/4.0);
-				
-				
 				subSampleCb[subSampleIndexY][subSampleIndexX] = 
-						(Cb[indexY][indexX]);
+						(Cb[indexY][indexX] * 1.0/4.0) + 
+						(Cb[indexY][indexX + 1] * 1.0/4.0) + 
+						(Cb[indexY + 1][indexX] * 1.0/4.0) + 
+						(Cb[indexY + 1][indexX + 1] * 1.0/4.0);
 				
 				subSampleCr[subSampleIndexY][subSampleIndexX] = 
-						(Cr[indexY][indexX]);
+						(Cr[indexY][indexX] * 1.0/4.0) + 
+						(Cr[indexY][indexX + 1] * 1.0/4.0) + 
+						(Cr[indexY + 1][indexX] * 1.0/4.0) + 
+						(Cr[indexY + 1][indexX + 1] * 1.0/4.0);
 				
 				
+//				subSampleCb[subSampleIndexY][subSampleIndexX] = 
+//						(Cb[indexY][indexX]);
+//				
+//				subSampleCr[subSampleIndexY][subSampleIndexX] = 
+//						(Cr[indexY][indexX]);
 			}	
 		}
-		
-//		Image newPaddedImage = new Image(Y[0].length, Y.length);
-//		
-//		for(int indexY = 0; indexY < subSampleCb.length; indexY++) 
-//		{
-//			for(int indexX = 0; indexX < subSampleCb[0].length; indexX++) 
-//			{
-//				if(Y.length > (indexY * 2) && Y[0].length > (indexX * 2) ) 
-//				{
-//					double newTempY = (Y[indexY * 2][indexX * 2] + 128);
-//					double newTempCb = (subSampleCb[indexY][indexX] + 0.5);
-//					double newTempCr = (subSampleCr[indexY][indexX] + 0.5);
-//					
-//					double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-//					double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-//					double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-//					
-//					newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
-//					
-////					newPaddedImage.setPixel((indexX * 2), (indexY * 2), new int[] {(int)R, (int)G, (int)B});
-////					newPaddedImage.setPixel((indexX * 2) + 1, (indexY * 2), new int[] {(int)R, (int)G, (int)B});
-////					newPaddedImage.setPixel((indexX * 2), (indexY * 2) + 1, new int[] {(int)R, (int)G, (int)B});
-////					newPaddedImage.setPixel((indexX * 2) + 1, (indexY * 2) + 1, new int[] {(int)R, (int)G, (int)B});
-//					
-//				}
-//			}	
-//		}
-//
-//		newPaddedImage.display();
-//		System.out.println();
 	}
 	
 	public static void main(String[] args)
@@ -209,12 +177,23 @@ public class CS4551_Tran
 				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
 				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
 				
+				if(R >= 256) R = 255;
+				if(G >= 256) G = 255;
+				if(B >= 256) B = 255;
+				
+				if(R < 0) R = 0;
+				if(G < 0) G = 0;
+				if(B < 0) B = 0;
+				
+				assert(R < 256 && R >= 0);
+				assert(G < 256 && G >= 0);
+				assert(B < 256 && B >= 0);
+				
 				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
 			}	
 		}
 
 		newPaddedImage.display();
-		System.out.println();
 //################		Remove Padding and Display the image
 		
 		int originalHeight = 0;

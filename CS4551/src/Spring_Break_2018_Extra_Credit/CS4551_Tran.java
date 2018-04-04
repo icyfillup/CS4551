@@ -124,6 +124,39 @@ public class CS4551_Tran
 		return newPaddedImage;
 	}
 
+	private static double[][] DctConversion(double[][] sourceChannel)
+	{
+		assert(sourceChannel.length % 8 == 0);
+		assert(sourceChannel[0].length % 8 == 0);
+		
+		double[][] inverseY = new double[sourceChannel.length][sourceChannel[0].length];
+		for(int j = 0; j < sourceChannel.length/8; j++) 
+		{
+			for(int i = 0; i < sourceChannel[0].length/8; i++) 
+			{
+				double[][] sourceSample = new double[8][8];
+				for(int y = 0; y < sourceSample.length; y++) 
+				{
+					for(int x = 0; x < sourceSample[0].length; x++) 
+					{
+						sourceSample[y][x] = sourceChannel[(j * 8) + y][(i * 8) + x];
+					}	
+				}
+				
+				double[][] dctCoeff = DctCalculation(sourceSample);
+				for(int y = 0; y < dctCoeff.length; y++) 
+				{
+					for(int x = 0; x < dctCoeff[0].length; x++) 
+					{
+						inverseY[(j * 8) + y][(i * 8) + x] = dctCoeff[y][x];
+					}	
+				}
+			}
+		}
+		
+		return inverseY;
+	}
+	
 	private static double[][] DctCalculation(double[][] sourceSample)
 	{
 		double [][] dctCoeff = new double[sourceSample.length][sourceSample[0].length];
@@ -152,11 +185,13 @@ public class CS4551_Tran
 		
 		return dctCoeff;
 	}
-	
 
 	private static double[][] InverseDctCalculation(double[][] dctCoeff)
 	{
-		double [][] sourceSample = new double[dctCoeff.length][dctCoeff[0].length];
+		assert(dctCoeff.length % 8 == 0);
+		assert(dctCoeff[0].length % 8 == 0);
+		
+		double [][] sourceChannel = new double[dctCoeff.length][dctCoeff[0].length];
 		
 		for(int j = 0; j < dctCoeff.length; j++) 
 		{
@@ -175,12 +210,41 @@ public class CS4551_Tran
 						sum += CoefficientScalar(u, v) * firstCosine * secondCosine * dctCoeff[v][u];
 					}
 				}
-				sourceSample[j][i] = sum;
+				sourceChannel[j][i] = sum;
 			}
 		}
-		return sourceSample;
+		return sourceChannel;
 	}
 
+	private static double[][] InverseDctConversion(double[][] InverseChannel)
+	{
+		double[][] newChannel = new double[InverseChannel.length][InverseChannel[0].length];
+		for(int j = 0; j < InverseChannel.length/8; j++) 
+		{
+			for(int i = 0; i < InverseChannel[0].length/8; i++) 
+			{
+				double[][] dctCoeff = new double[8][8];
+				for(int y = 0; y < dctCoeff.length; y++) 
+				{
+					for(int x = 0; x < dctCoeff[0].length; x++) 
+					{
+						dctCoeff[y][x] = InverseChannel[(j * 8) + y][(i * 8) + x];
+					}	
+				}
+				
+				double[][] sourceSample = InverseDctCalculation(dctCoeff);
+				for(int y = 0; y < sourceSample.length; y++) 
+				{
+					for(int x = 0; x < sourceSample[0].length; x++) 
+					{
+						newChannel[(j * 8) + y][(i * 8) + x] = sourceSample[y][x];
+					}	
+				}
+			}
+		}
+		
+		return newChannel;
+	}
 	
 	public static double CoefficientScalar(int x, int y) 
 	{
@@ -216,66 +280,19 @@ public class CS4551_Tran
 
 //################		Discrete Cosine Transform
 		
-		assert(Y.length % 8 == 0);
-		assert(Y[0].length % 8 == 0);
-		
-		double[][] inverseY = new double[Y.length][Y[0].length];
-		for(int j = 0; j < Y.length/8; j++) 
-		{
-			for(int i = 0; i < Y[0].length/8; i++) 
-			{
-				double[][] sourceSample = new double[8][8];
-				for(int y = 0; y < sourceSample.length; y++) 
-				{
-					for(int x = 0; x < sourceSample[0].length; x++) 
-					{
-						sourceSample[y][x] = Y[(j * 8) + y][(i * 8) + x];
-					}	
-				}
-				
-				double[][] dctCoeff = DctCalculation(sourceSample);
-				for(int y = 0; y < dctCoeff.length; y++) 
-				{
-					for(int x = 0; x < dctCoeff[0].length; x++) 
-					{
-						inverseY[(j * 8) + y][(i * 8) + x] = dctCoeff[y][x];
-					}	
-				}
-			}
-		}
-
-		System.out.println();
+		double[][] inverseY = DctConversion(Y);
+		double[][] inverseCb = DctConversion(subSampleCb);
+		double[][] inverseCr = DctConversion(subSampleCr);
 		
 //################		Inverse DCT
 
-		double[][] newY = new double[inverseY.length][inverseY[0].length];
-		for(int j = 0; j < inverseY.length/8; j++) 
-		{
-			for(int i = 0; i < inverseY[0].length/8; i++) 
-			{
-				double[][] dctCoeff = new double[8][8];
-				for(int y = 0; y < dctCoeff.length; y++) 
-				{
-					for(int x = 0; x < dctCoeff[0].length; x++) 
-					{
-						dctCoeff[y][x] = inverseY[(j * 8) + y][(i * 8) + x];
-					}	
-				}
-				
-				double[][] sourceSample = InverseDctCalculation(dctCoeff);
-				for(int y = 0; y < sourceSample.length; y++) 
-				{
-					for(int x = 0; x < sourceSample[0].length; x++) 
-					{
-						newY[(j * 8) + y][(i * 8) + x] = sourceSample[y][x];
-					}	
-				}
-			}
-		}
+		double[][] newY = InverseDctConversion(inverseY);
+		double[][] newSubSampleCb = InverseDctConversion(inverseCb);
+		double[][] newSubSampleCr = InverseDctConversion(inverseCr);
 		
 //################		Inverse Color space transformation and Supersampling
 
-		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, subSampleCb, subSampleCr);
+		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, newSubSampleCb, newSubSampleCr);
 		newPaddedImage.display();
 		
 //################		Remove Padding and Display the image
@@ -327,6 +344,8 @@ public class CS4551_Tran
 				break;
 			}
 		}
+		
+		Image newImage = new Image(originalWidth, originalHeight);
 		
 		System.exit(0);
 	}

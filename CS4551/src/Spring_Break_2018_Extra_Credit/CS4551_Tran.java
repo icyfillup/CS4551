@@ -24,6 +24,71 @@ public class CS4551_Tran
 		return paddedImage;
 	}
 	
+	private static Image RemoveImagePadding(Image paddedImage) 
+	{
+		int originalHeight = 0;
+		for(int j = paddedImage.getH() - 1; j >= 0; j--) 
+		{
+			originalHeight = j;
+			boolean isOriginalHeight = false;
+			for(int i = 0; i < paddedImage.getW(); i++) 
+			{
+				int[] rgb = new int[3];
+				paddedImage.getPixel(i, j, rgb);
+				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
+				{
+					isOriginalHeight = true;
+					break;
+				}
+			}
+			
+			if(isOriginalHeight) 
+			{
+				//plus one to size from the index
+				originalHeight++;
+				break;
+			}
+		}
+		
+		int originalWidth = 0;
+		for(int i = paddedImage.getW() - 1; i >= 0; i--) 
+		{
+			originalWidth = i;
+			boolean isOriginalWidth= false;
+			for(int j = 0; j < paddedImage.getH(); j++) 
+			{
+				int[] rgb = new int[3];
+				paddedImage.getPixel(i, j, rgb);
+				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
+				{
+					isOriginalWidth = true;
+					break;
+				}
+			}
+			
+			if(isOriginalWidth) 
+			{
+				//plus one to size from the index
+				originalWidth++;
+				break;
+			}
+		}
+		
+		Image newImage = new Image(originalWidth, originalHeight);
+		
+		for(int y = 0; y < newImage.getH(); y++) 
+		{
+			for(int x = 0; x < newImage.getW(); x++)
+			{
+				int[] rgb = new int[3];
+				paddedImage.getPixel(x, y, rgb);
+				newImage.setPixel(x, y, rgb);
+			}	
+		}
+		
+		return newImage;
+	}
+	
 	private static void ColorSpaceTransformationSubsampling(Image paddedImage, double[][] Y, double[][] subSampleCb, double[][] subSampleCr) 
 	{
 		double[][] Cb = new double[paddedImage.getH()][paddedImage.getW()];
@@ -78,12 +143,6 @@ public class CS4551_Tran
 						(Cr[indexY + 1][indexX] * 1.0/4.0) + 
 						(Cr[indexY + 1][indexX + 1] * 1.0/4.0);
 				
-				
-//				subSampleCb[subSampleIndexY][subSampleIndexX] = 
-//						(Cb[indexY][indexX]);
-//				
-//				subSampleCr[subSampleIndexY][subSampleIndexX] = 
-//						(Cr[indexY][indexX]);
 			}	
 		}
 	}
@@ -180,6 +239,19 @@ public class CS4551_Tran
 					}
 				}		
 				dctCoeff[y][x] = CoefficientScalar(x, y) * sum;
+				
+				double min = -1 * Math.pow(2, 10);
+				double max = Math.pow(2, 10);
+				
+				if(dctCoeff[y][x] < min) 
+				{
+					dctCoeff[y][x] = min;
+				}
+				else if(dctCoeff[y][x] > max) 
+				{
+					dctCoeff[y][x] = max;
+				}
+				
 			}
 		}
 		
@@ -293,59 +365,11 @@ public class CS4551_Tran
 //################		Inverse Color space transformation and Supersampling
 
 		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, newSubSampleCb, newSubSampleCr);
-		newPaddedImage.display();
 		
 //################		Remove Padding and Display the image
 		
-		int originalHeight = 0;
-		for(int j = newPaddedImage.getH() - 1; j >= 0; j--) 
-		{
-			originalHeight = j;
-			boolean isOriginalHeight = false;
-			for(int i = 0; i < newPaddedImage.getW(); i++) 
-			{
-				int[] rgb = new int[3];
-				newPaddedImage.getPixel(i, j, rgb);
-				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
-				{
-					isOriginalHeight = true;
-					break;
-				}
-			}
-			
-			if(isOriginalHeight) 
-			{
-				//plus one to size from the index
-				originalHeight++;
-				break;
-			}
-		}
-		
-		int originalWidth = 0;
-		for(int i = newPaddedImage.getW() - 1; i >= 0; i--) 
-		{
-			originalWidth = i;
-			boolean isOriginalWidth= false;
-			for(int j = 0; j < newPaddedImage.getH(); j++) 
-			{
-				int[] rgb = new int[3];
-				newPaddedImage.getPixel(i, j, rgb);
-				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
-				{
-					isOriginalWidth = true;
-					break;
-				}
-			}
-			
-			if(isOriginalWidth) 
-			{
-				//plus one to size from the index
-				originalWidth++;
-				break;
-			}
-		}
-		
-		Image newImage = new Image(originalWidth, originalHeight);
+		Image newImage = RemoveImagePadding(newPaddedImage);
+		newImage.display();
 		
 		System.exit(0);
 	}

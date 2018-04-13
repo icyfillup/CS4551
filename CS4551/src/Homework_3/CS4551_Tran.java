@@ -522,8 +522,8 @@ public class CS4551_Tran
 		do
 		{
 			System.out.print("Select compression quality between 0 - 5: ");
-//			n = input.next();	
-			n = "0";
+			n = input.next();	
+//			n = "0";
 		}
 		while(!(n.contains("0") || n.contains("1") || n.contains("2") || 
 				n.contains("3") || n.contains("4") || n.contains("5")));
@@ -564,7 +564,6 @@ public class CS4551_Tran
 //################		Compression Ratio
 			
 		CompressionRatio(originalImage, inverseY, inverseCb, inverseCr, nLevel);
-//		DisplaySampleValues(inverseY);
 		
 //################		De-quantization		
 		
@@ -579,7 +578,6 @@ public class CS4551_Tran
 //################		Inverse Color space transformation and Supersampling
 
 		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, newSubSampleCb, newSubSampleCr);
-		newPaddedImage.display();
 		
 //################		Remove Padding and Display the image
 		

@@ -133,13 +133,14 @@ public class CS4551_Tran
 				double tempCb = (RGB[0] * -0.1687) + (RGB[1] * -0.3313) + (RGB[2] * 0.5000);
 				double tempCr = (RGB[0] * 0.5000) + (RGB[1] * -0.4187) + (RGB[2] * -0.0813);
 				
-//				tempY = Math.floor(tempY);
-//				tempCb = Math.floor(tempCb * 10) / 10.0;
-//				tempCr = Math.floor(tempCr * 10) / 10.0;
+				if(tempY > 255) tempY = 255;
+				if(tempY < 0) tempY = 0;
 				
-				assert(tempY <= 255 & tempY >= 0);
-				assert(tempCb <= 127.5 & tempCb >= -127.5);
-				assert(tempCr <= 127.5 & tempCr >= -127.5);
+				if(tempCb > 127.5) tempCb = 127.5;
+				if(tempCb < -127.5) tempCb = -127.5;
+				
+				if(tempCr > 127.5) tempCr = 127.5;
+				if(tempCr < -127.5) tempCr = -127.5;
 				
 				Y[j][i] = (tempY - 128);
 				Cb[j][i] = (tempCb - 0.5);

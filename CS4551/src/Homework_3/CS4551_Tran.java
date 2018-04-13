@@ -1,5 +1,6 @@
 package Homework_3;
 
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class CS4551_Tran
@@ -32,6 +33,18 @@ public class CS4551_Tran
 		return result;
 	}
 	
+	public static void DisplaySampleValues(double [][] A)
+	{
+		for(int i = 0; i < A.length; i++) 
+		{
+			for(int j = 0; j < A[0].length; j++) 
+			{
+				System.out.print(A[i][j] + " ");
+			}
+			System.out.println();
+		}
+	}
+	
 	private static Image CreatePaddedImage(Image originalImage) 
 	{
 		int widthPadding = ((originalImage.getW() % 8) == 0) ? originalImage.getW() : originalImage.getW() + 8 - (originalImage.getW() % 8);
@@ -50,71 +63,6 @@ public class CS4551_Tran
 		}
 		
 		return paddedImage;
-	}
-	
-	private static Image RemoveImagePadding(Image paddedImage) 
-	{
-		int originalHeight = 0;
-		for(int j = paddedImage.getH() - 1; j >= 0; j--) 
-		{
-			originalHeight = j;
-			boolean isOriginalHeight = false;
-			for(int i = 0; i < paddedImage.getW(); i++) 
-			{
-				int[] rgb = new int[3];
-				paddedImage.getPixel(i, j, rgb);
-				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
-				{
-					isOriginalHeight = true;
-					break;
-				}
-			}
-			
-			if(isOriginalHeight) 
-			{
-				//plus one to size from the index
-				originalHeight++;
-				break;
-			}
-		}
-		
-		int originalWidth = 0;
-		for(int i = paddedImage.getW() - 1; i >= 0; i--) 
-		{
-			originalWidth = i;
-			boolean isOriginalWidth= false;
-			for(int j = 0; j < paddedImage.getH(); j++) 
-			{
-				int[] rgb = new int[3];
-				paddedImage.getPixel(i, j, rgb);
-				if(rgb[0] != 0 || rgb[1] != 0 || rgb[2] != 0) 
-				{
-					isOriginalWidth = true;
-					break;
-				}
-			}
-			
-			if(isOriginalWidth) 
-			{
-				//plus one to size from the index
-				originalWidth++;
-				break;
-			}
-		}
-		
-		Image newImage = new Image(originalWidth, originalHeight);
-		
-		for(int y = 0; y < newImage.getH(); y++) 
-		{
-			for(int x = 0; x < newImage.getW(); x++)
-			{
-				int[] rgb = new int[3];
-				paddedImage.getPixel(x, y, rgb);
-				newImage.setPixel(x, y, rgb);
-			}	
-		}
-		
-		return newImage;
 	}
 	
 	private static void ColorSpaceTransformationSubsampling(Image paddedImage, double[][] Y, double[][] subSampleCb, double[][] subSampleCr) 
@@ -176,48 +124,12 @@ public class CS4551_Tran
 		}
 	}
 	
-	private static Image InverseColorSpaceTransformationSubsampling(double[][] Y, double[][] subSampleCb, double[][] subSampleCr) 
-	{
-		Image newPaddedImage = new Image(Y[0].length, Y.length);
-		for(int indexY = 0; indexY < Y.length; indexY++) 
-		{
-			int subSampleIndexY = indexY / 2;
-			for(int indexX = 0; indexX < Y[0].length; indexX++) 
-			{
-				int subSampleIndexX = indexX / 2;
-				
-				double newTempY = (Y[indexY][indexX] + 128);
-				double newTempCb = (subSampleCb[subSampleIndexY][subSampleIndexX] + 0.5);
-				double newTempCr = (subSampleCr[subSampleIndexY][subSampleIndexX] + 0.5);
-				
-				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
-				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
-				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
-				
-				if(R >= 256) R = 255;
-				if(G >= 256) G = 255;
-				if(B >= 256) B = 255;
-				
-				if(R < 0) R = 0;
-				if(G < 0) G = 0;
-				if(B < 0) B = 0;
-				
-				assert(R < 256 && R >= 0);
-				assert(G < 256 && G >= 0);
-				assert(B < 256 && B >= 0);
-				
-				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
-			}	
-		}
-		return newPaddedImage;
-	}
-
 	private static double[][] DctConversion(double[][] sourceChannel)
 	{
 		assert(sourceChannel.length % 8 == 0);
 		assert(sourceChannel[0].length % 8 == 0);
 		
-		double[][] inverseY = new double[sourceChannel.length][sourceChannel[0].length];
+		double[][] inverseChannel = new double[sourceChannel.length][sourceChannel[0].length];
 		for(int j = 0; j < sourceChannel.length/8; j++) 
 		{
 			for(int i = 0; i < sourceChannel[0].length/8; i++) 
@@ -236,13 +148,13 @@ public class CS4551_Tran
 				{
 					for(int x = 0; x < dctCoeff[0].length; x++) 
 					{
-						inverseY[(j * 8) + y][(i * 8) + x] = dctCoeff[y][x];
+						inverseChannel[(j * 8) + y][(i * 8) + x] = dctCoeff[y][x];
 					}	
 				}
 			}
 		}
 		
-		return inverseY;
+		return inverseChannel;
 	}
 	
 	private static double[][] DctCalculation(double[][] sourceSample)
@@ -267,7 +179,7 @@ public class CS4551_Tran
 						sum = sum + (firstCosine * secondCosine * sourceSample[i][j]);
 					}
 				}		
-				dctCoeff[y][x] = CoefficientScalar(x, y) * sum;
+				dctCoeff[y][x] = (CoefficientScalar(x, y) / 4.0) * sum;
 				
 				double min = -1 * Math.pow(2, 10);
 				double max = Math.pow(2, 10);
@@ -287,7 +199,7 @@ public class CS4551_Tran
 		return dctCoeff;
 	}
 	
-	private static void QuantizeSample(double[][] inverseY, double[][] inverseCb, double[][] inverseCr, int nLevel)
+	private static void QuantizeSampling(double[][] inverseY, double[][] inverseCb, double[][] inverseCr, int nLevel)
 	{
 		int[][] yQuantizationTable = LuminanceQuantizationTable();
 		int[][] cbcrChrominanceTable = ChrominanceQuantizationTable();
@@ -297,7 +209,7 @@ public class CS4551_Tran
 			for(int v = 0; v < inverseY[0].length; v++) 
 			{
 				double yPrime = yQuantizationTable[u % 8][v % 8] * Math.pow(2, nLevel);
-				inverseY[u][v] = (inverseY[u][v] / yPrime);
+				inverseY[u][v] = Math.round(inverseY[u][v] / yPrime);
 			}
 		}
 		
@@ -306,7 +218,7 @@ public class CS4551_Tran
 			for(int v = 0; v < inverseCb[0].length; v++) 
 			{
 				double cbPrime = cbcrChrominanceTable[u % 8][v % 8] * Math.pow(2, nLevel);
-				inverseCb[u][v] = (inverseCb[u][v] / cbPrime);
+				inverseCb[u][v] = Math.round(inverseCb[u][v] / cbPrime);
 			}
 		}
 		
@@ -315,9 +227,135 @@ public class CS4551_Tran
 			for(int v = 0; v < inverseCr[0].length; v++) 
 			{
 				double crPrime = cbcrChrominanceTable[u % 8][v % 8] * Math.pow(2, nLevel);
-				inverseCr[u][v] = (inverseCr[u][v] / crPrime);
+				inverseCr[u][v] = Math.round(inverseCr[u][v] / crPrime);
 			}
 		}
+	}
+	
+	private static void CompressionRatio(Image originalImage, double[][] inverseY, double[][] inverseCb, double[][] inverseCr, int nLevel) 
+	{
+		double S = originalImage.getW() * originalImage.getH() * 24;
+		
+		int totalInverseYBit = CompressionConversion(inverseY, 10 - nLevel);
+		int totalInverseCbBit = CompressionConversion(inverseCb, 9 - nLevel);
+		int totalInverseCrBit = CompressionConversion(inverseCr, 9 - nLevel);
+		
+		double D = (totalInverseYBit + totalInverseCbBit + totalInverseCrBit);
+		
+		double compressionRatio = S / D;
+		
+		System.out.println("For a quantization level n = " + nLevel);
+		System.out.println("The original image cost, (S), is " + totalInverseYBit + " bits");
+		System.out.println("The Y values cost is " + totalInverseYBit + " bits");
+		System.out.println("The Cb values cost is " + totalInverseCbBit + " bits");
+		System.out.println("The Cr values cost is " + totalInverseCrBit + " bits");
+		System.out.println("The total compressed Image cost, (D), is " + D + " bits");
+		System.out.println("The Compression Ratio, (S/D), is " + compressionRatio);
+	}
+	
+	private static int CompressionConversion(double[][] sourceChannel, int codewords)
+	{
+		assert(sourceChannel.length % 8 == 0);
+		assert(sourceChannel[0].length % 8 == 0);
+		
+		int totalSourceChannelBit = 0;
+		
+		for(int j = 0; j < sourceChannel.length/8; j++) 
+		{
+			for(int i = 0; i < sourceChannel[0].length/8; i++) 
+			{
+				double[][] sourceSample = new double[8][8];
+				for(int y = 0; y < sourceSample.length; y++) 
+				{
+					for(int x = 0; x < sourceSample[0].length; x++) 
+					{
+						sourceSample[y][x] = (int) sourceChannel[(j * 8) + y][(i * 8) + x];
+					}	
+				}
+				
+				int dctBlockBit = codewords + QuantizedDctBlockCalculation(sourceSample, codewords);
+				
+				totalSourceChannelBit += dctBlockBit;
+			}
+		}
+		
+		return totalSourceChannelBit;
+	}
+	
+	private static int QuantizedDctBlockCalculation(double[][] sourceSample, int codewords)
+	{
+		class AC_Coefficient
+		{
+			double code;
+			int runLength;
+			
+			public AC_Coefficient(double code, int runLength)
+			{
+				super();
+				this.code = code;
+				this.runLength = runLength;
+			}
+		}
+		
+		int highestRunlength = 0;
+		
+		int x = 1;
+		int y = 0;
+		boolean moveLeft = false;
+		
+		ArrayList<AC_Coefficient> stream = new ArrayList<>();
+		AC_Coefficient currentAC = new AC_Coefficient(sourceSample[y][x], 1);
+		stream.add(currentAC);
+		
+		highestRunlength = currentAC.runLength;
+		while(true) 
+		{
+			if(!moveLeft && (x <= 0 || y >= 7)) // touching right wall
+			{
+				if(y < 7) y++;
+				else if(y >= 7) x++;
+				
+				moveLeft = true;
+			}
+			else if(moveLeft && (x >= 7 || y <= 0)) // touching left wall
+			{
+				if(x < 7) x++;
+				else if(x >= 7) y++;
+				
+				moveLeft = false;
+			}
+			else if(!moveLeft) 
+			{
+				x--;
+				y++;
+			}
+			else if(moveLeft) 
+			{
+				x++;
+				y--;
+			}
+			
+			if(sourceSample[y][x] == currentAC.code) 
+			{
+				currentAC.runLength++;
+				highestRunlength = highestRunlength < currentAC.runLength ? currentAC.runLength : highestRunlength;
+			}
+			else 
+			{
+				currentAC = new AC_Coefficient(sourceSample[y][x], 1);
+				stream.add(currentAC);
+			}
+			
+			if(x == 7 && y == 7) 
+			{
+				break;
+			}
+		}
+		
+		int bit = 0;
+		while(Math.pow(2, bit) < highestRunlength) {bit++;}
+		
+		return (codewords + bit) * stream.size();
 	}
 	
 	private static void DeQuantizeSample(double[][] inverseY, double[][] inverseCb, double[][] inverseCr, int nLevel)
@@ -377,7 +415,7 @@ public class CS4551_Tran
 						sum += CoefficientScalar(u, v) * firstCosine * secondCosine * dctCoeff[v][u];
 					}
 				}
-				sourceChannel[j][i] = sum;
+				sourceChannel[j][i] = sum / 4.0;
 			}
 		}
 		return sourceChannel;
@@ -415,11 +453,64 @@ public class CS4551_Tran
 	
 	public static double CoefficientScalar(int x, int y) 
 	{
-		double c1 = (x == 0) ? Math.sqrt(2.0)/2.0 : 1.0;
-		double c2 = (y == 0) ? Math.sqrt(2.0)/2.0 : 1.0;
+		double c1 = (x == 0) ? 1.0/Math.sqrt(2.0) : 1.0;
+		double c2 = (y == 0) ? 1.0/Math.sqrt(2.0) : 1.0;
 		
-		double result = (c1 * c2) / 4.0;
+		double result = (c1 * c2);
 		return result;
+	}
+	
+	private static Image InverseColorSpaceTransformationSubsampling(double[][] Y, double[][] subSampleCb, double[][] subSampleCr) 
+	{
+		Image newPaddedImage = new Image(Y[0].length, Y.length);
+		for(int indexY = 0; indexY < Y.length; indexY++) 
+		{
+			int subSampleIndexY = indexY / 2;
+			for(int indexX = 0; indexX < Y[0].length; indexX++) 
+			{
+				int subSampleIndexX = indexX / 2;
+				
+				double newTempY = (Y[indexY][indexX] + 128);
+				double newTempCb = (subSampleCb[subSampleIndexY][subSampleIndexX] + 0.5);
+				double newTempCr = (subSampleCr[subSampleIndexY][subSampleIndexX] + 0.5);
+				
+				double R = (newTempY * 1.000) + (newTempCb * 0.0) + (newTempCr * 1.4020);
+				double G = (newTempY * 1.000) + (newTempCb * -0.3441) + (newTempCr * -0.7141);
+				double B = (newTempY * 1.000) + (newTempCb * 1.7720) + (newTempCr * 0.0);
+				
+				if(R >= 256) R = 255;
+				if(G >= 256) G = 255;
+				if(B >= 256) B = 255;
+				
+				if(R < 0) R = 0;
+				if(G < 0) G = 0;
+				if(B < 0) B = 0;
+				
+				assert(R < 256 && R >= 0);
+				assert(G < 256 && G >= 0);
+				assert(B < 256 && B >= 0);
+				
+				newPaddedImage.setPixel(indexX, indexY, new int[] {(int)R, (int)G, (int)B});
+			}	
+		}
+		return newPaddedImage;
+	}
+
+	private static Image RemoveImagePadding(Image paddedImage, int originalWidth, int originalHeight) 
+	{
+		Image newImage = new Image(originalWidth, originalHeight);
+		
+		for(int y = 0; y < newImage.getH(); y++) 
+		{
+			for(int x = 0; x < newImage.getW(); x++)
+			{
+				int[] rgb = new int[3];
+				paddedImage.getPixel(x, y, rgb);
+				newImage.setPixel(x, y, rgb);
+			}	
+		}
+		
+		return newImage;
 	}
 	
 	public static void main(String[] args)
@@ -431,8 +522,8 @@ public class CS4551_Tran
 		do
 		{
 			System.out.print("Select compression quality between 0 - 5: ");
-			n = input.next();	
-//			n = "0";
+//			n = input.next();	
+			n = "0";
 		}
 		while(!(n.contains("0") || n.contains("1") || n.contains("2") || 
 				n.contains("3") || n.contains("4") || n.contains("5")));
@@ -447,6 +538,7 @@ public class CS4551_Tran
 		Image paddedImage = CreatePaddedImage(originalImage);
 		
 //################		Color space transformation and Subsampling
+		
 		int subSamplingWidth = (paddedImage.getW() * 2) / 4;
 		int subSamplingHeight = (paddedImage.getH() * 2) / 4;
 		
@@ -467,8 +559,12 @@ public class CS4551_Tran
 		
 //################		Quantization		
 		
-		QuantizeSample(inverseY, inverseCb, inverseCr, nLevel);
+		QuantizeSampling(inverseY, inverseCb, inverseCr, nLevel);
 		
+//################		Compression Ratio
+			
+		CompressionRatio(originalImage, inverseY, inverseCb, inverseCr, nLevel);
+//		DisplaySampleValues(inverseY);
 		
 //################		De-quantization		
 		
@@ -484,9 +580,10 @@ public class CS4551_Tran
 
 		Image newPaddedImage = InverseColorSpaceTransformationSubsampling(newY, newSubSampleCb, newSubSampleCr);
 		newPaddedImage.display();
+		
 //################		Remove Padding and Display the image
 		
-		Image newImage = RemoveImagePadding(newPaddedImage);
+		Image newImage = RemoveImagePadding(newPaddedImage, originalImage.getW(), originalImage.getH());
 		newImage.display();
 		
 		input.close();

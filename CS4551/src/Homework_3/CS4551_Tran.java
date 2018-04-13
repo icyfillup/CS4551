@@ -245,7 +245,7 @@ public class CS4551_Tran
 		double compressionRatio = S / D;
 		
 		System.out.println("For a quantization level n = " + nLevel);
-		System.out.println("The original image cost, (S), is " + totalInverseYBit + " bits");
+		System.out.println("The original image cost, (S), is " + S + " bits");
 		System.out.println("The Y values cost is " + totalInverseYBit + " bits");
 		System.out.println("The Cb values cost is " + totalInverseCbBit + " bits");
 		System.out.println("The Cr values cost is " + totalInverseCrBit + " bits");

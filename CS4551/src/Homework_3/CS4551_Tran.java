@@ -244,6 +244,7 @@ public class CS4551_Tran
 		
 		double compressionRatio = S / D;
 		
+		System.out.println();
 		System.out.println("For a quantization level n = " + nLevel);
 		System.out.println("The original image cost, (S), is " + S + " bits");
 		System.out.println("The Y values cost is " + totalInverseYBit + " bits");
@@ -251,6 +252,7 @@ public class CS4551_Tran
 		System.out.println("The Cr values cost is " + totalInverseCrBit + " bits");
 		System.out.println("The total compressed Image cost, (D), is " + D + " bits");
 		System.out.println("The Compression Ratio, (S/D), is " + compressionRatio);
+		System.out.println();
 	}
 	
 	private static int CompressionConversion(double[][] sourceChannel, int codewords)
@@ -582,7 +584,7 @@ public class CS4551_Tran
 //################		Remove Padding and Display the image
 		
 		Image newImage = RemoveImagePadding(newPaddedImage, originalImage.getW(), originalImage.getH());
-		newImage.display();
+		newImage.write2PPM(args[0].split("\\.")[0] + "_" + nLevel + ".ppm");
 		
 		input.close();
 		System.exit(0);

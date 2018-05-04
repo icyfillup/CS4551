@@ -1,5 +1,8 @@
 package Homework_4;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Scanner;
 
 public class CS4551_Tran
@@ -17,18 +20,125 @@ public class CS4551_Tran
 					 		 "Please enter the task number [1-3]: ");
 	
 //			option = input.next();	
-			option = "1";
+			option = "2";
 			System.out.println();
 		}
 		while(!(option.contains("1") || option.contains("2") || option.contains("3")));
 		
 		if(option.equals("1")) 
 		{
-			BlockBasedMotionCompensation(input);
+			Image targetImage = null;
+			String targetFileName = "";
+			{
+				boolean hasTargetFile = false;
+				do
+				{
+					System.out.print("Enter Target Image File Name: ");
+//					targetFileName = input.next();	
+					targetFileName = "Walk_054.ppm";
+					
+					try 
+					{
+						targetImage = new Image(targetFileName);
+						hasTargetFile = true;
+					}
+					catch(Exception e) 
+					{
+						hasTargetFile = false;
+					}
+				}
+				while(!hasTargetFile);
+				System.out.println();
+			}
+
+			Image referenceImage = null;
+			String referenceFileName = "";
+			{
+				boolean hasReferenceFile = false;
+				do
+				{
+					System.out.print("Enter Reference Image File Name: ");
+//					referenceFileName = input.next();	
+					referenceFileName = "Walk_050.ppm";
+					
+					try 
+					{
+						referenceImage = new Image(referenceFileName);
+						hasReferenceFile = true;
+					}
+					catch(Exception e) 
+					{
+						hasReferenceFile = false;
+					}
+				}
+				while(!hasReferenceFile);
+				System.out.println();
+			}
+			
+			String nS = null;
+			do
+			{
+				System.out.print("Select block size n (8, 16, or 24): ");
+		
+//				nS = input.next();	
+				nS = "8";
+				System.out.println();
+			}
+			while(!(nS.contains("8") || nS.contains("16") || nS.contains("24")));
+			System.out.println();
+			
+			String pS = null;
+			do
+			{
+				System.out.print("Select search window p (4, 8, 12, or 16): ");
+		
+//				pS = input.next();	
+				pS = "4";
+				System.out.println();
+			}
+			while(!(pS.contains("4") || pS.contains("8") || pS.contains("12") || pS.contains("16")));
+			System.out.println();
+			
+			int n = Integer.parseInt(nS);
+			int p = Integer.parseInt(pS);
+			
+			int imageBlockWidth = targetImage.getW() / n;
+			int imageBlockHeight = targetImage.getH() / n;
+			Vector2i[][] motionVectorList = new Vector2i[imageBlockHeight][imageBlockWidth];
+			
+			Image residualImage = new Image(targetImage.getW(), targetImage.getH());
+			BlockBasedMotionCompensation(targetImage, referenceImage, residualImage, motionVectorList, n, p);
+			CreateMotionVectorTextFile(motionVectorList, residualImage, targetFileName, referenceFileName);
+			residualImage.display();
+			residualImage.write2PPM("error_" + targetFileName);
+			
+			System.out.println();
 		}
 		else if(option.equals("2")) 
 		{
-
+			int targetFrame = -1;
+			do
+			{
+				System.out.print("Enter Target Frame Image number (19 ~ 179): ");
+				try 
+				{
+//					targetFrame= Integer.parseInt(input.next());	
+					targetFrame = 50;
+				}
+				catch(Exception e){}
+				
+				System.out.println();
+			}
+			while(!(targetFrame> 19 && targetFrame< 179));
+			System.out.println();
+			
+			String targetFileName = "Walk_" + FrameCountFormatter(targetFrame) + ".ppm";
+			String referenceFileName = "Walk_" + FrameCountFormatter(targetFrame - 2) + ".ppm";
+			
+			Image targetImage = new Image(targetFileName);
+			Image referenceImage = new Image(referenceFileName);
+			
+			MovingObjectDetectionandRemoval(targetImage, referenceImage);
 		}
 		else if(option.equals("3")) 
 		{
@@ -37,48 +147,81 @@ public class CS4551_Tran
 		
 		return isRunning;
 	}
-
-	public static void BlockBasedMotionCompensation(Scanner input) 
+	
+	public static void MovingObjectDetectionandRemoval(Image targetImage, Image referenceImage) 
 	{
-		Image targetImage = new Image("./IDB/Walk_100.ppm");
-		Image referenceImage = new Image("./IDB/Walk_010.ppm");
+		int n = 8;
+		int p = 4;
+		
+		int imageBlockWidth = targetImage.getW() / n;
+		int imageBlockHeight = targetImage.getH() / n;
+		Vector2i[][] motionVectorList = new Vector2i[imageBlockHeight][imageBlockWidth];
+		
+		BlockBasedMotionCompensation(targetImage, referenceImage, 
+									 new Image(targetImage.getW(), targetImage.getH()), 
+									 motionVectorList, n, p);
+		
+		for(int blockOffsetY = 0; blockOffsetY < imageBlockHeight; blockOffsetY++) 
+		{
+			for(int blockOffsetX = 0; blockOffsetX < imageBlockWidth; blockOffsetX++) 
+			{
+				Vector2i mv = motionVectorList[blockOffsetY][blockOffsetX];
+				if(mv.getX() != 0 && mv.getY() != 0) 
+				{
+					for(int y = 0; y < n; y++) 
+					{
+						for(int x = 0; x < n; x++) 
+						{
+							int[] targetPixelRGB = new int[3];
+							targetImage.getPixel((blockOffsetX * n)+ x, 
+												 (blockOffsetY * n) + y, 
+												  targetPixelRGB);
+							
+							int targetGrayPixel = 
+									(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
+							
+							targetPixelRGB[0] = 200;
+							targetPixelRGB[1] = targetGrayPixel;
+							targetPixelRGB[2] = targetGrayPixel;
+							
+							targetImage.setPixel((blockOffsetX * n)+ x, 
+												 (blockOffsetY * n) + y, 
+												 targetPixelRGB);
+							
+						}
+					}
+				}
+			}	
+		}
+		targetImage.display();
 		System.out.println();
-		
-		String nS = null;
-		do
-		{
-			System.out.print("Select block size n (8, 16, or 24): ");
+	}
 	
-//			n = input.next();	
-			nS = "8";
-			System.out.println();
-		}
-		while(!(nS.contains("8") || nS.contains("16") || nS.contains("24")));
+	public static String FrameCountFormatter(int rawFrameNumber) 
+	{
+		String frameNumberS = String.valueOf(rawFrameNumber);
+		int addZeroCount = 3 - frameNumberS.length();
 		
-		String pS = null;
-		do
+		for(int i = 0; i < addZeroCount; i++) 
 		{
-			System.out.print("Select search window p (4, 8, 12, or 16): ");
-	
-//			p = input.next();	
-			pS = "4";
-			System.out.println();
+			frameNumberS = "0" + frameNumberS;
 		}
-		while(!(pS.contains("4") || pS.contains("8") || pS.contains("12") || pS.contains("16")));
 		
-		int n = Integer.parseInt(nS);
-		int p = Integer.parseInt(pS);
-		
-		Image residualImage = new Image(targetImage.getW(), targetImage.getH());
+		return frameNumberS;
+	}
+
+	public static void BlockBasedMotionCompensation(Image targetImage, Image referenceImage, Image residualImage, 
+													Vector2i[][] motionVectorList, int n, int p) 
+	{
 		int minError = 255;
 		int maxError = 0;
-		
-		for(int worldY = 0; worldY < targetImage.getH() / n; worldY++) 
+
+		for(int imageBlockY = 0; imageBlockY < motionVectorList.length; imageBlockY++) 
 		{
-			for(int worldX = 0; worldX < targetImage.getW() / n; worldX++) 
+			for(int imageBlockX = 0; imageBlockX < motionVectorList[0].length; imageBlockX++) 
 			{
-				int targetBlockX = worldX * n;
-				int targetBlockY = worldY * n;
+				int targetBlockX = imageBlockX * n;
+				int targetBlockY = imageBlockY * n;
 				
 				double bestMatchedReferenceBlockMSD = Double.MAX_VALUE; 
 				int bestMatchedReferenceBlockX = 0; 
@@ -138,8 +281,7 @@ public class CS4551_Tran
 					}
 				}
 				
-				int motionX = targetBlockX - bestMatchedReferenceBlockX;
-				int motionY = targetBlockY - bestMatchedReferenceBlockY;
+				motionVectorList[imageBlockY][imageBlockX] = new Vector2i(targetBlockX - bestMatchedReferenceBlockX, targetBlockY - bestMatchedReferenceBlockY);
 				
 				for(int y = 0; y < n; y++) 
 				{
@@ -176,8 +318,6 @@ public class CS4551_Tran
 						int[] residualPixelRGB = new int[3];
 						
 						int residualGrayPixel = Math.abs(targetGrayPixel - referenceGrayPixel);
-//						int residualGrayPixel = referenceGrayPixel;
-						
 						residualPixelRGB[0] = residualGrayPixel;
 						residualPixelRGB[1] = residualGrayPixel;
 						residualPixelRGB[2] = residualGrayPixel;
@@ -185,40 +325,60 @@ public class CS4551_Tran
 						if(residualGrayPixel < minError) minError = residualGrayPixel;
 						if(residualGrayPixel > maxError) maxError = residualGrayPixel;
 						
-						if(residualGrayPixel < maxError && residualGrayPixel > minError) 
-						{
-							System.out.println();
-						}
-						
 						residualImage.setPixel(targetBlockX + x, targetBlockY + y, residualPixelRGB);
 					}	
 				}
-				
-//				System.out.println("x: " + bestMatchedReferenceBlockX + ", y: " + bestMatchedReferenceBlockY);
-//				System.out.println("Best Matched Macro Block MSD: " + bestMatchedReferenceBlockMSD);
-//				System.out.println();
 			}	
 		}
 		
-//		for(int y = 0; y < residualImage.getH(); y++) 
-//		{
-//			for(int x = 0; x < residualImage.getW(); x++) 
-//			{
-//				int[] residualPixelRGB = new int[3];
-//				residualImage.getPixel(x, y, residualPixelRGB);
-//				
-//				residualPixelRGB[0] = (int)(((double)(residualPixelRGB[0] - minError) / (double)(maxError - minError)) * 255.0);
-//				residualPixelRGB[1] = (int)(((double)(residualPixelRGB[1] - minError) / (double)(maxError - minError)) * 255.0);
-//				residualPixelRGB[2] = (int)(((double)(residualPixelRGB[2] - minError) / (double)(maxError - minError)) * 255.0);
-//				
-//				residualImage.setPixel(x, y, residualPixelRGB);
-//			}	
-//		}
-		
-//		targetImage.display();
-//		referenceImage.display();
-		residualImage.display();
-		System.out.println();
+		for(int y = 0; y < residualImage.getH(); y++) 
+		{
+			for(int x = 0; x < residualImage.getW(); x++) 
+			{
+				int[] residualPixelRGB = new int[3];
+				residualImage.getPixel(x, y, residualPixelRGB);
+				
+				residualPixelRGB[0] = (int)(((double)(residualPixelRGB[0] - minError) / (double)(maxError - minError)) * 255.0);
+				residualPixelRGB[1] = (int)(((double)(residualPixelRGB[1] - minError) / (double)(maxError - minError)) * 255.0);
+				residualPixelRGB[2] = (int)(((double)(residualPixelRGB[2] - minError) / (double)(maxError - minError)) * 255.0);
+				
+				residualImage.setPixel(x, y, residualPixelRGB);
+			}	
+		}
+	}
+	
+	public static void CreateMotionVectorTextFile(Vector2i[][] motionVectorList, Image image, String targetName, String referenceName)
+	{
+		PrintWriter writer;
+		try
+		{
+			writer = new PrintWriter("mv.txt", "UTF-8");
+			
+			int imageBlockX = motionVectorList[0].length;
+			int imageBlockY = motionVectorList.length;
+			
+			writer.println("# Target image name: " + targetName);
+			writer.println("# Reference image name: " + referenceName);
+			writer.print("# Number of target macro block: " + imageBlockX + " x " + imageBlockY + " ");
+			writer.println("(image size is " + image.getW() + " x " + image.getH() + ")");
+			
+			for(int y = 0 ; y < imageBlockY; y++) 
+			{
+				for(int x = 0 ; x < imageBlockX; x++) 
+				{
+					Vector2i mv = motionVectorList[y][x];
+					writer.print("[" + mv.getX() + "," + mv.getY() +"]\t");
+				}	
+				writer.println();
+			}
+			
+			writer.close();
+		}
+		catch (FileNotFoundException | UnsupportedEncodingException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public static void main(String[] args)
@@ -229,5 +389,33 @@ public class CS4551_Tran
 		
 		input.close();
 		System.exit(0);
+	}
+}
+
+class Vector2i
+{
+	private int x;
+	private int y;
+	public Vector2i(int x, int y)
+	{
+		super();
+		this.x = x;
+		this.y = y;
+	}
+	
+	public int getX()
+	{
+		return x;
+	}
+	
+	public int getY()
+	{
+		return y;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "Vector2i [x=" + x + ", y=" + y + "]";
 	}
 }

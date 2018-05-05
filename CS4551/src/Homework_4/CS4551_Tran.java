@@ -22,7 +22,7 @@ public class CS4551_Tran
 					 		 "Please enter the task number [1-3]: ");
 	
 //			option = input.next();	
-			option = "2";
+			option = "1";
 			System.out.println();
 		}
 		while(!(option.contains("1") || option.contains("2") || option.contains("3")));
@@ -83,7 +83,7 @@ public class CS4551_Tran
 				System.out.print("Select block size n (8, 16, or 24): ");
 		
 //				nS = input.next();	
-				nS = "8";
+				nS = "16";
 				System.out.println();
 			}
 			while(!(nS.contains("8") || nS.contains("16") || nS.contains("24")));
@@ -95,7 +95,7 @@ public class CS4551_Tran
 				System.out.print("Select search window p (4, 8, 12, or 16): ");
 		
 //				pS = input.next();	
-				pS = "4";
+				pS = "16";
 				System.out.println();
 			}
 			while(!(pS.contains("4") || pS.contains("8") || pS.contains("12") || pS.contains("16")));
@@ -134,13 +134,40 @@ public class CS4551_Tran
 			while(!(targetFrame> 19 && targetFrame< 179));
 			System.out.println();
 			
+			String nS = null;
+			do
+			{
+				System.out.print("Select block size n (8, 16, or 24): ");
+		
+//				nS = input.next();	
+				nS = "8";
+				System.out.println();
+			}
+			while(!(nS.contains("8") || nS.contains("16") || nS.contains("24")));
+			System.out.println();
+			
+			String pS = null;
+			do
+			{
+				System.out.print("Select search window p (4, 8, 12, or 16): ");
+		
+//				pS = input.next();	
+				pS = "12";
+				System.out.println();
+			}
+			while(!(pS.contains("4") || pS.contains("8") || pS.contains("12") || pS.contains("16")));
+			System.out.println();
+			
+			int n = Integer.parseInt(nS);
+			int p = Integer.parseInt(pS);
+			
 			String targetFileName = "Walk_" + FrameCountFormatter(targetFrame) + ".ppm";
 			String referenceFileName = "Walk_" + FrameCountFormatter(targetFrame - 2) + ".ppm";
 			
 			Image targetImage = new Image(targetFileName);
 			Image referenceImage = new Image(referenceFileName);
 			
-			MovingObjectDetectionandRemoval(targetImage, referenceImage);
+			MovingObjectDetectionandRemoval(targetImage, referenceImage, n, p);
 		}
 		else if(option.equals("3")) 
 		{
@@ -150,11 +177,8 @@ public class CS4551_Tran
 		return isRunning;
 	}
 	
-	public static void MovingObjectDetectionandRemoval(Image targetImage, Image referenceImage) 
+	public static void MovingObjectDetectionandRemoval(Image targetImage, Image referenceImage, int n, int p) 
 	{
-		int n = 8;
-		int p = 4;
-		
 		int imageBlockWidth = targetImage.getW() / n;
 		int imageBlockHeight = targetImage.getH() / n;
 		Vector2i[][] motionVectorList = new Vector2i[imageBlockHeight][imageBlockWidth];
@@ -165,6 +189,24 @@ public class CS4551_Tran
 		
 		List<Vector2i> detectedMacroBlockArea = DetectMovingObjectMacroBlock(motionVectorList);
 		
+		Image detectedImage = DetectionMacroBlock(targetImage, detectedMacroBlockArea, n);
+		Image closestStaticReplacementImage = ClosestStaticMacroBlockReplacement(targetImage, detectedMacroBlockArea, n);
+		Image overlayStaticReplacementImage = OverlayStaticMacroBlockReplacement(targetImage, detectedMacroBlockArea, n);
+
+		detectedImage.display();
+		closestStaticReplacementImage.display();
+		overlayStaticReplacementImage.display();
+		
+		detectedImage.write2PPM("obj_detection.ppm");
+		closestStaticReplacementImage.write2PPM("obj_remove1.ppm");
+		overlayStaticReplacementImage.write2PPM("obj_remove2.ppm");
+		
+		System.out.println();
+	}
+	
+	public static Image DetectionMacroBlock(Image targetImage, List<Vector2i> detectedMacroBlockArea, int n) 
+	{
+		Image detectedImage = targetImage.clone();
 		for(Vector2i macroBlockVector: detectedMacroBlockArea) 
 		{
 			for(int y = 0; y < n; y++) 
@@ -183,18 +225,43 @@ public class CS4551_Tran
 					targetPixelRGB[1] = targetGrayPixel;
 					targetPixelRGB[2] = targetGrayPixel;
 					
-					targetImage.setPixel((macroBlockVector.getX() * n)+ x, 
-										 (macroBlockVector.getY() * n) + y, 
-										 targetPixelRGB);
+					detectedImage.setPixel((macroBlockVector.getX() * n)+ x, 
+										   (macroBlockVector.getY() * n) + y, 
+										   targetPixelRGB);
 				}
 			}	
 		}
-		Image closestStaticReplacementImage = ClosestStaticMacroBlockReplacement(targetImage, detectedMacroBlockArea, n);
-		targetImage.display();
-		closestStaticReplacementImage.display();
-		System.out.println();
+		
+		
+		return detectedImage;
 	}
 	
+	public static Image OverlayStaticMacroBlockReplacement(Image targetImage, List<Vector2i> detectedMacroBlockArea, int n) 
+	{
+		Image overlayStaticReplacementImage = targetImage.clone();
+		Image overlayImage = new Image("Walk_005.ppm");
+		
+		for(Vector2i macroBlockVector: detectedMacroBlockArea) 
+		{
+			for(int y = 0; y < n; y++) 
+			{
+				for(int x = 0; x < n; x++) 
+				{
+					int[] copyingPixelRGB = new int[3];
+					overlayImage.getPixel((macroBlockVector.getX() * n) + x, 
+										  (macroBlockVector.getY() * n) + y, 
+										   copyingPixelRGB);
+
+					
+					overlayStaticReplacementImage.setPixel((macroBlockVector.getX() * n) + x, 
+										 				   (macroBlockVector.getY() * n) + y, 
+										 				   copyingPixelRGB);
+				}
+			}	
+		}
+		
+		return overlayStaticReplacementImage;
+	}
 	
 	public static Image ClosestStaticMacroBlockReplacement(Image targetImage, List<Vector2i> detectedMacroBlockArea, int n) 
 	{
@@ -211,27 +278,29 @@ public class CS4551_Tran
 				int left = macroBlockVector.getX() - i;
 				int right = macroBlockVector.getX() + i;
 
-				if(top < 0 && bottom >= closestStaticReplacementImage.getH() && left < 0 && right >= closestStaticReplacementImage.getH())
+				if(top < 0 && bottom >= closestStaticReplacementImage.getH() / n && left < 0 && right >= closestStaticReplacementImage.getH() / n)
 					break;
 				
 				top = (top < 0) ? 0 : top;
-				bottom = (bottom < targetImage.getH()) ? bottom : targetImage.getH() - 1;
+				bottom = (bottom < targetImage.getH() / n) ? bottom : (targetImage.getH() / n) - 1;
 				
 				left = (left < 0) ? 0 : left;
-				right = (right < targetImage.getW()) ? right : targetImage.getW() - 1;
+				right = (right < targetImage.getW() / n) ? right : (targetImage.getW() / n) - 1;
 
 				for(int macroBlockOffsetX = left; macroBlockOffsetX < right; macroBlockOffsetX++) 
 				{
 					if(isReplacementMacroBlock(detectedMacroBlockArea, macroBlockOffsetX, top)) 
 					{
-						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, macroBlockOffsetX, top, n);
+						Vector2i offsetVector = new Vector2i(macroBlockOffsetX, top);
+						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, offsetVector, n);
 						hasReplace = true;
 						break;
 					}
 					
 					if(isReplacementMacroBlock(detectedMacroBlockArea, macroBlockOffsetX, bottom)) 
 					{
-						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, macroBlockOffsetX, bottom, n);
+						Vector2i offsetVector = new Vector2i(macroBlockOffsetX, bottom);
+						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, offsetVector, n);
 						hasReplace = true;
 						break;
 					}
@@ -243,14 +312,16 @@ public class CS4551_Tran
 					{
 						if(isReplacementMacroBlock(detectedMacroBlockArea, left, macroBlockOffsetY)) 
 						{
-							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, left, macroBlockOffsetY, n);
+							Vector2i offsetVector = new Vector2i(left, macroBlockOffsetY);
+							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, offsetVector, n);
 							hasReplace = true;
 							break;
 						}
 						
 						if(isReplacementMacroBlock(detectedMacroBlockArea, right, macroBlockOffsetY)) 
 						{
-							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, right, macroBlockOffsetY, n);
+							Vector2i offsetVector = new Vector2i(right, macroBlockOffsetY);
+							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, offsetVector, n);
 							hasReplace = true;
 							break;
 						}
@@ -262,17 +333,15 @@ public class CS4551_Tran
 		return closestStaticReplacementImage;
 	}
 	
-	public static void ReplaceMacroBlock(Image targetImage, Vector2i macroBlockVector, int copyMacroBlockOffsetX, int copyMacroBlockOffsetY, int n)
+	public static void ReplaceMacroBlock(Image targetImage, Vector2i macroBlockVector, Vector2i copyMacroBlockOffsetVector, int n)
 	{
-		Image copyingImage = new Image("Walk_001.ppm");
-		
 		for(int y = 0; y < n; y++) 
 		{
 			for(int x = 0; x < n; x++) 
 			{
 				int[] copyingPixelRGB = new int[3];
-				copyingImage.getPixel((copyMacroBlockOffsetX * n) + x, 
-									 (copyMacroBlockOffsetY * n) + y, 
+				targetImage.getPixel((copyMacroBlockOffsetVector.getX() * n) + x, 
+									 (copyMacroBlockOffsetVector.getY() * n) + y, 
 									 copyingPixelRGB);
 
 				
@@ -333,92 +402,41 @@ public class CS4551_Tran
 	public static void BlockBasedMotionCompensation(Image targetImage, Image referenceImage, Image residualImage, 
 													Vector2i[][] motionVectorList, int n, int p) 
 	{
-		int minError = 255;
-		int maxError = 0;
-
-		for(int imageBlockY = 0; imageBlockY < motionVectorList.length; imageBlockY++) 
+		n = 16;
+		p = 16;
+		
+		int targetBlockX = 0;
+		int targetBlockY = 0;
+		
+		double bestMatchedReferenceBlockMSD = Double.MAX_VALUE;
+		int bestMatchedReferenceBlockX = 0;
+		int bestMatchedReferenceBlockY = 0;
+		
+		for(int yOffset = 0; yOffset < (p * 2) + 1;  yOffset++) 
 		{
-			for(int imageBlockX = 0; imageBlockX < motionVectorList[0].length; imageBlockX++) 
+			int referenceBlockY = (targetBlockY - p) + yOffset;
+			for(int xOffset = 0; xOffset < (p * 2) + 1;  xOffset++) 
 			{
-				int targetBlockX = imageBlockX * n;
-				int targetBlockY = imageBlockY * n;
+				int referenceBlockX = (targetBlockX - p) + xOffset;
 				
-				double bestMatchedReferenceBlockMSD = Double.MAX_VALUE; 
-				int bestMatchedReferenceBlockX = 0; 
-				int bestMatchedReferenceBlockY = 0;
-				
-				for(int yOffset = 0; yOffset < (p * 2) + 1;  yOffset++) 
-				{
-					int referenceBlockY = (targetBlockY - p) + yOffset;
-					for(int xOffset = 0; xOffset < (p * 2) + 1;  xOffset++) 
-					{
-						int referenceBlockX = (targetBlockX - p) + xOffset;
-						double MSD = 0;
-						for(int y = 0; y < n; y++) 
-						{
-							int targetPixelY = targetBlockY + y;
-							int referencePixelY = referenceBlockY + y;
-							
-							if(targetPixelY < 0 || targetPixelY >= targetImage.getH()) continue;
-							if(referencePixelY < 0 || referencePixelY >= referenceImage.getH()) continue;
-
-							for(int x = 0; x < n; x++) 
-							{
-								int targetPixelX = targetBlockX + x;
-								int referencePixelX = referenceBlockX + x;
-								
-								if(targetPixelX < 0 || targetPixelX >= targetImage.getW()) continue;
-								if(referencePixelX < 0 || referencePixelX >= referenceImage.getW()) continue;
-			
-								int[] targetPixelRGB = new int[3];
-								int[] referencePixelRGB = new int[3];
-								
-								targetImage.getPixel(targetPixelX, 
-													 targetPixelY, 
-													 targetPixelRGB);
-								
-								referenceImage.getPixel(referencePixelX, 
-														referencePixelY, 
-														referencePixelRGB);
-								
-								int targetGrayPixel = 
-										(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
-								int referenceGrayPixel = 
-										(int) Math.round(0.299 * referencePixelRGB[0] + 0.587 * referencePixelRGB[1] + 0.114 * referencePixelRGB[2]);
-								
-								MSD += Math.pow(targetGrayPixel - referenceGrayPixel, 2);
-							}
-						}
-						
-						MSD = (1.0/(n*n)) * MSD;
-						
-						if(MSD < bestMatchedReferenceBlockMSD) 
-						{
-							bestMatchedReferenceBlockMSD = MSD;	
-							bestMatchedReferenceBlockX = referenceBlockX;
-							bestMatchedReferenceBlockY = referenceBlockY;
-						}
-					}
-				}
-				
-				motionVectorList[imageBlockY][imageBlockX] = new Vector2i(targetBlockX - bestMatchedReferenceBlockX, targetBlockY - bestMatchedReferenceBlockY);
-				
+				double MSD = 0;
+				boolean hasMacroBlockIntersect = false;
 				for(int y = 0; y < n; y++) 
 				{
 					int targetPixelY = targetBlockY + y;
-					int referencePixelY = bestMatchedReferenceBlockY + y;
+					int referencePixelY = referenceBlockY + y;
 					
-					if(targetPixelY < 0 || targetPixelY >= targetImage.getH()) continue;
 					if(referencePixelY < 0 || referencePixelY >= referenceImage.getH()) continue;
 					
 					for(int x = 0; x < n; x++) 
 					{
 						int targetPixelX = targetBlockX + x;
-						int referencePixelX = bestMatchedReferenceBlockX + x;
+						int referencePixelX = referenceBlockX + x;
 						
-						if(targetPixelX < 0 || targetPixelX >= targetImage.getW()) continue;
 						if(referencePixelX < 0 || referencePixelX >= referenceImage.getW()) continue;
-
+						
+						hasMacroBlockIntersect = true;
+						
 						int[] targetPixelRGB = new int[3];
 						int[] referencePixelRGB = new int[3];
 						
@@ -430,41 +448,159 @@ public class CS4551_Tran
 												referencePixelY, 
 												referencePixelRGB);
 						
-						int targetGrayPixel = 
-								(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
-						int referenceGrayPixel = 
-								(int) Math.round(0.299 * referencePixelRGB[0] + 0.587 * referencePixelRGB[1] + 0.114 * referencePixelRGB[2]);
+						double targetGrayPixel = Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
+						double referenceGrayPixel = Math.round(0.299 * referencePixelRGB[0] + 0.587 * referencePixelRGB[1] + 0.114 * referencePixelRGB[2]);
 						
-						int[] residualPixelRGB = new int[3];
-						
-						int residualGrayPixel = Math.abs(targetGrayPixel - referenceGrayPixel);
-						residualPixelRGB[0] = residualGrayPixel;
-						residualPixelRGB[1] = residualGrayPixel;
-						residualPixelRGB[2] = residualGrayPixel;
-						
-						if(residualGrayPixel < minError) minError = residualGrayPixel;
-						if(residualGrayPixel > maxError) maxError = residualGrayPixel;
-						
-						residualImage.setPixel(targetBlockX + x, targetBlockY + y, residualPixelRGB);
-					}	
+						MSD += Math.pow(targetGrayPixel - referenceGrayPixel, 2);
+					}
 				}
-			}	
+				
+				MSD = (1.0/(n*n)) * MSD;
+				
+				if(MSD < bestMatchedReferenceBlockMSD) 
+				{
+					bestMatchedReferenceBlockMSD = MSD;	
+					bestMatchedReferenceBlockX = referenceBlockX;
+					bestMatchedReferenceBlockY = referenceBlockY;
+				}
+			}
 		}
 		
-		for(int y = 0; y < residualImage.getH(); y++) 
-		{
-			for(int x = 0; x < residualImage.getW(); x++) 
-			{
-				int[] residualPixelRGB = new int[3];
-				residualImage.getPixel(x, y, residualPixelRGB);
-				
-				residualPixelRGB[0] = (int)(((double)(residualPixelRGB[0] - minError) / (double)(maxError - minError)) * 255.0);
-				residualPixelRGB[1] = (int)(((double)(residualPixelRGB[1] - minError) / (double)(maxError - minError)) * 255.0);
-				residualPixelRGB[2] = (int)(((double)(residualPixelRGB[2] - minError) / (double)(maxError - minError)) * 255.0);
-				
-				residualImage.setPixel(x, y, residualPixelRGB);
-			}	
-		}
+		Vector2i mv = new Vector2i(targetBlockX - bestMatchedReferenceBlockX, targetBlockY - bestMatchedReferenceBlockY);
+		System.out.println();
+		
+//		int minError = 255;
+//		int maxError = 0;
+//
+//		for(int imageBlockY = 0; imageBlockY < motionVectorList.length; imageBlockY++) 
+//		{
+//			for(int imageBlockX = 0; imageBlockX < motionVectorList[0].length; imageBlockX++) 
+//			{
+//				int targetBlockX = imageBlockX * n;
+//				int targetBlockY = imageBlockY * n;
+//				
+//				double bestMatchedReferenceBlockMSD = Double.MAX_VALUE; 
+//				int bestMatchedReferenceBlockX = 0; 
+//				int bestMatchedReferenceBlockY = 0;
+//				
+//				for(int yOffset = 0; yOffset < (p * 2) + 1;  yOffset++) 
+//				{
+//					int referenceBlockY = (targetBlockY - p) + yOffset;
+//					for(int xOffset = 0; xOffset < (p * 2) + 1;  xOffset++) 
+//					{
+//						int referenceBlockX = (targetBlockX - p) + xOffset;
+//						double MSD = 0;
+//						for(int y = 0; y < n; y++) 
+//						{
+//							int targetPixelY = targetBlockY + y;
+//							int referencePixelY = referenceBlockY + y;
+//							
+//							if(targetPixelY < 0 || targetPixelY >= targetImage.getH()) continue;
+//							if(referencePixelY < 0 || referencePixelY >= referenceImage.getH()) continue;
+//
+//							for(int x = 0; x < n; x++) 
+//							{
+//								int targetPixelX = targetBlockX + x;
+//								int referencePixelX = referenceBlockX + x;
+//								
+//								if(targetPixelX < 0 || targetPixelX >= targetImage.getW()) continue;
+//								if(referencePixelX < 0 || referencePixelX >= referenceImage.getW()) continue;
+//			
+//								int[] targetPixelRGB = new int[3];
+//								int[] referencePixelRGB = new int[3];
+//								
+//								targetImage.getPixel(targetPixelX, 
+//													 targetPixelY, 
+//													 targetPixelRGB);
+//								
+//								referenceImage.getPixel(referencePixelX, 
+//														referencePixelY, 
+//														referencePixelRGB);
+//								
+//								int targetGrayPixel = 
+//										(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
+//								int referenceGrayPixel = 
+//										(int) Math.round(0.299 * referencePixelRGB[0] + 0.587 * referencePixelRGB[1] + 0.114 * referencePixelRGB[2]);
+//								
+//								MSD += Math.pow(targetGrayPixel - referenceGrayPixel, 2);
+//							}
+//						}
+//						
+//						MSD = (1.0/(n*n)) * MSD;
+//						
+//						if(MSD < bestMatchedReferenceBlockMSD) 
+//						{
+//							bestMatchedReferenceBlockMSD = MSD;	
+//							bestMatchedReferenceBlockX = referenceBlockX;
+//							bestMatchedReferenceBlockY = referenceBlockY;
+//						}
+//					}
+//				}
+//				
+//				motionVectorList[imageBlockY][imageBlockX] = new Vector2i(targetBlockX - bestMatchedReferenceBlockX, targetBlockY - bestMatchedReferenceBlockY);
+//				
+//				for(int y = 0; y < n; y++) 
+//				{
+//					int targetPixelY = targetBlockY + y;
+//					int referencePixelY = bestMatchedReferenceBlockY + y;
+//					
+//					if(targetPixelY < 0 || targetPixelY >= targetImage.getH()) continue;
+//					if(referencePixelY < 0 || referencePixelY >= referenceImage.getH()) continue;
+//					
+//					for(int x = 0; x < n; x++) 
+//					{
+//						int targetPixelX = targetBlockX + x;
+//						int referencePixelX = bestMatchedReferenceBlockX + x;
+//						
+//						if(targetPixelX < 0 || targetPixelX >= targetImage.getW()) continue;
+//						if(referencePixelX < 0 || referencePixelX >= referenceImage.getW()) continue;
+//
+//						int[] targetPixelRGB = new int[3];
+//						int[] referencePixelRGB = new int[3];
+//						
+//						targetImage.getPixel(targetPixelX, 
+//											 targetPixelY, 
+//											 targetPixelRGB);
+//						
+//						referenceImage.getPixel(referencePixelX, 
+//												referencePixelY, 
+//												referencePixelRGB);
+//						
+//						int targetGrayPixel = 
+//								(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
+//						int referenceGrayPixel = 
+//								(int) Math.round(0.299 * referencePixelRGB[0] + 0.587 * referencePixelRGB[1] + 0.114 * referencePixelRGB[2]);
+//						
+//						int[] residualPixelRGB = new int[3];
+//						
+//						int residualGrayPixel = Math.abs(targetGrayPixel - referenceGrayPixel);
+//						residualPixelRGB[0] = residualGrayPixel;
+//						residualPixelRGB[1] = residualGrayPixel;
+//						residualPixelRGB[2] = residualGrayPixel;
+//						
+//						if(residualGrayPixel < minError) minError = residualGrayPixel;
+//						if(residualGrayPixel > maxError) maxError = residualGrayPixel;
+//						
+//						residualImage.setPixel(targetBlockX + x, targetBlockY + y, residualPixelRGB);
+//					}	
+//				}
+//			}	
+//		}
+//		
+//		for(int y = 0; y < residualImage.getH(); y++) 
+//		{
+//			for(int x = 0; x < residualImage.getW(); x++) 
+//			{
+//				int[] residualPixelRGB = new int[3];
+//				residualImage.getPixel(x, y, residualPixelRGB);
+//				
+//				residualPixelRGB[0] = (int)(((double)(residualPixelRGB[0] - minError) / (double)(maxError - minError)) * 255.0);
+//				residualPixelRGB[1] = (int)(((double)(residualPixelRGB[1] - minError) / (double)(maxError - minError)) * 255.0);
+//				residualPixelRGB[2] = (int)(((double)(residualPixelRGB[2] - minError) / (double)(maxError - minError)) * 255.0);
+//				
+//				residualImage.setPixel(x, y, residualPixelRGB);
+//			}	
+//		}
 	}
 	
 	public static void CreateMotionVectorTextFile(Vector2i[][] motionVectorList, Image image, String targetName, String referenceName)

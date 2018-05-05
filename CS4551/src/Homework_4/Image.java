@@ -239,6 +239,23 @@ public class Image
 
 	//My code below///////////////////////////////////////////////////////////////////////////////////////	
 
+	public Image clone() 
+	{
+		int width = getW();
+		int height = getH();
+		Image copy = new Image(width, height);
+
+		for(int y = 0; y < height; y++) 
+		{
+			for(int x = 0; x < width; x++) 
+			{
+				int[] rgb = new int[3];
+				getPixel(x, y, rgb);
+				copy.setPixel(x, y, rgb);
+			}
+		}
+		return copy;
+	}
 	
 
 } // Image class

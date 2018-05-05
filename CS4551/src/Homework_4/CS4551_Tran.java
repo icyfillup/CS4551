@@ -3,6 +3,8 @@ package Homework_4;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class CS4551_Tran
@@ -161,40 +163,158 @@ public class CS4551_Tran
 									 new Image(targetImage.getW(), targetImage.getH()), 
 									 motionVectorList, n, p);
 		
-		for(int blockOffsetY = 0; blockOffsetY < imageBlockHeight; blockOffsetY++) 
+		List<Vector2i> detectedMacroBlockArea = DetectMovingObjectMacroBlock(motionVectorList);
+		
+		for(Vector2i macroBlockVector: detectedMacroBlockArea) 
 		{
-			for(int blockOffsetX = 0; blockOffsetX < imageBlockWidth; blockOffsetX++) 
+			for(int y = 0; y < n; y++) 
 			{
-				Vector2i mv = motionVectorList[blockOffsetY][blockOffsetX];
-				if(mv.getX() != 0 && mv.getY() != 0) 
+				for(int x = 0; x < n; x++) 
 				{
-					for(int y = 0; y < n; y++) 
-					{
-						for(int x = 0; x < n; x++) 
-						{
-							int[] targetPixelRGB = new int[3];
-							targetImage.getPixel((blockOffsetX * n)+ x, 
-												 (blockOffsetY * n) + y, 
-												  targetPixelRGB);
-							
-							int targetGrayPixel = 
-									(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
-							
-							targetPixelRGB[0] = 200;
-							targetPixelRGB[1] = targetGrayPixel;
-							targetPixelRGB[2] = targetGrayPixel;
-							
-							targetImage.setPixel((blockOffsetX * n)+ x, 
-												 (blockOffsetY * n) + y, 
-												 targetPixelRGB);
-							
-						}
-					}
+					int[] targetPixelRGB = new int[3];
+					targetImage.getPixel((macroBlockVector.getX() * n)+ x, 
+										 (macroBlockVector.getY() * n) + y, 
+										  targetPixelRGB);
+					
+					int targetGrayPixel = 
+							(int) Math.round(0.299 * targetPixelRGB[0] + 0.587 * targetPixelRGB[1] + 0.114 * targetPixelRGB[2]);
+					
+					targetPixelRGB[0] = 200;
+					targetPixelRGB[1] = targetGrayPixel;
+					targetPixelRGB[2] = targetGrayPixel;
+					
+					targetImage.setPixel((macroBlockVector.getX() * n)+ x, 
+										 (macroBlockVector.getY() * n) + y, 
+										 targetPixelRGB);
 				}
 			}	
 		}
+		Image closestStaticReplacementImage = ClosestStaticMacroBlockReplacement(targetImage, detectedMacroBlockArea, n);
 		targetImage.display();
+		closestStaticReplacementImage.display();
 		System.out.println();
+	}
+	
+	
+	public static Image ClosestStaticMacroBlockReplacement(Image targetImage, List<Vector2i> detectedMacroBlockArea, int n) 
+	{
+		Image closestStaticReplacementImage = targetImage.clone();
+		for(Vector2i macroBlockVector: detectedMacroBlockArea) 
+		{
+			boolean hasReplace = false;
+			
+			for(int i = 1; !hasReplace; i++) 
+			{
+				int top = macroBlockVector.getY() - i;
+				int bottom = macroBlockVector.getY() + i;
+				
+				int left = macroBlockVector.getX() - i;
+				int right = macroBlockVector.getX() + i;
+
+				if(top < 0 && bottom >= closestStaticReplacementImage.getH() && left < 0 && right >= closestStaticReplacementImage.getH())
+					break;
+				
+				top = (top < 0) ? 0 : top;
+				bottom = (bottom < targetImage.getH()) ? bottom : targetImage.getH() - 1;
+				
+				left = (left < 0) ? 0 : left;
+				right = (right < targetImage.getW()) ? right : targetImage.getW() - 1;
+
+				for(int macroBlockOffsetX = left; macroBlockOffsetX < right; macroBlockOffsetX++) 
+				{
+					if(isReplacementMacroBlock(detectedMacroBlockArea, macroBlockOffsetX, top)) 
+					{
+						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, macroBlockOffsetX, top, n);
+						hasReplace = true;
+						break;
+					}
+					
+					if(isReplacementMacroBlock(detectedMacroBlockArea, macroBlockOffsetX, bottom)) 
+					{
+						ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, macroBlockOffsetX, bottom, n);
+						hasReplace = true;
+						break;
+					}
+				}
+				
+				if(!hasReplace) 
+				{
+					for(int macroBlockOffsetY = top; macroBlockOffsetY < bottom; macroBlockOffsetY++) 
+					{
+						if(isReplacementMacroBlock(detectedMacroBlockArea, left, macroBlockOffsetY)) 
+						{
+							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, left, macroBlockOffsetY, n);
+							hasReplace = true;
+							break;
+						}
+						
+						if(isReplacementMacroBlock(detectedMacroBlockArea, right, macroBlockOffsetY)) 
+						{
+							ReplaceMacroBlock(closestStaticReplacementImage, macroBlockVector, right, macroBlockOffsetY, n);
+							hasReplace = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		return closestStaticReplacementImage;
+	}
+	
+	public static void ReplaceMacroBlock(Image targetImage, Vector2i macroBlockVector, int copyMacroBlockOffsetX, int copyMacroBlockOffsetY, int n)
+	{
+		Image copyingImage = new Image("Walk_001.ppm");
+		
+		for(int y = 0; y < n; y++) 
+		{
+			for(int x = 0; x < n; x++) 
+			{
+				int[] copyingPixelRGB = new int[3];
+				copyingImage.getPixel((copyMacroBlockOffsetX * n) + x, 
+									 (copyMacroBlockOffsetY * n) + y, 
+									 copyingPixelRGB);
+
+				
+				targetImage.setPixel((macroBlockVector.getX() * n) + x, 
+									 (macroBlockVector.getY() * n) + y, 
+									 copyingPixelRGB);
+			}
+		}
+	}
+
+	public static boolean isReplacementMacroBlock(List<Vector2i> detectedMacroBlockArea, int x, int y)
+	{
+		boolean result = true;
+		
+		for(Vector2i vector: detectedMacroBlockArea) 
+		{
+			if(vector.getX() == x && vector.getY() == y) 
+			{
+				result = false;
+				break;
+			}
+		}
+		
+		return result;
+	}
+	
+	public static List<Vector2i> DetectMovingObjectMacroBlock(Vector2i[][] motionVectorList) 
+	{
+		List<Vector2i> detectedMacroBlockArea = new ArrayList<>();
+		
+		for(int blockOffsetY = 0; blockOffsetY < motionVectorList.length; blockOffsetY++) 
+		{
+			for(int blockOffsetX = 0; blockOffsetX < motionVectorList[0].length; blockOffsetX++) 
+			{
+				Vector2i mv = motionVectorList[blockOffsetY][blockOffsetX];
+				if(mv.getX() != 0 && mv.getY() != 0) 
+					detectedMacroBlockArea.add(new Vector2i(blockOffsetX, blockOffsetY));
+
+			}	
+		}
+		
+		return detectedMacroBlockArea;
 	}
 	
 	public static String FrameCountFormatter(int rawFrameNumber) 
